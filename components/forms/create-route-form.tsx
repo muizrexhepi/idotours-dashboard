@@ -54,25 +54,27 @@ export default function RouteForm({ stations }: { stations: Station[] }) {
         to: "",
       },
       luggages: {
-        free: "0",
-        price_for_extra: "0",
-        size: "50 x 50 x 50"
+        free: 0, 
+        price_for_extra: 0,
+        size: "50 x 50 x 50",
       },
       is_active: "true",
       generate_tickets_automatically: "true",
       metadata: {
-        sold: 0
+        sold: Number(0)
       },
       operator: ""
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof routeSchema>) => {
+  const onSubmit = async (values: any) => {
     setIsLoading(true);
     try {
+      if(user?.$id) {
       const message = await createRoute(values, user?.$id);
       setSuccess(message);
       console.log({ message });
+      }
     } catch (error) {
       console.error(error);
       setError("An error occurred while submitting the form.");
