@@ -60,8 +60,8 @@ export const routeSchema = z.object({
     to: z.string(),
   }),
   luggages: z.object({
-    free: z.string(),
-    price_for_extra: z.string(),
+    free: z.number(),
+    price_for_extra: z.number(),
     size: z.string(),
   }),
   is_active: z.string(),
