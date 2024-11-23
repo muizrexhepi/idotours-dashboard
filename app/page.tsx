@@ -238,7 +238,7 @@ export default function Dashboard() {
                <div key={booking?._id} className="flex items-center gap-4">
                 <Avatar className="hidden h-9 w-9 sm:flex">
                   <AvatarImage src="/avatars/01.png" alt="Avatar" />
-                  <AvatarFallback className="uppercase">{booking.passengers[0].full_name.charAt(0)} {booking.passengers[0].full_name.split(" ")[1].charAt(0)}</AvatarFallback>
+                  <AvatarFallback className="uppercase">{booking?.passengers[0]?.full_name?.charAt(0)} {booking?.passengers[0]?.full_name?.split(" ")[1]?.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="grid gap-1">
                   <p className="text-sm text-muted-foreground">
