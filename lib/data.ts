@@ -111,6 +111,11 @@ export const NAV_LINKS = [
         href: "/live-sessions",
         description: "View live sessions by your employees.",
       },
+      {
+        title: "Chat support",
+        href: "/live-chat-support",
+        description: "View your live chat support with Go Busly.",
+      },
     ],
   },
 
