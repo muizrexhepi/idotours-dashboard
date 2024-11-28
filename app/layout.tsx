@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Busly Portal - Manage Your Business Efficiently",
     description: "Access Busly Portal to streamline business operations and improve productivity with cutting-edge tools and resources.",
-    url: "https://portal.busly.eu", 
+    url: "https://portal.busly.eu",
     type: "website",
     images: [
       {
@@ -44,7 +44,7 @@ export default function RootLayout({
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
-            >
+          >
             <div className="flex min-h-screen w-full flex-col">
               <div className="z-[100]">
                 <Header />

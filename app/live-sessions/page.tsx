@@ -57,8 +57,8 @@ export default function UserSessions() {
     <div className="w-full max-w-7xl mx-auto p-4">
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Your user sessions</CardTitle>
-          <CardDescription>View all your active sessions across devices</CardDescription>
+          <CardTitle>Seancat tuaja të përdoruesve</CardTitle>
+          <CardDescription>Shikoni të gjitha seancat tuaja aktive nëpër pajisje</CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
@@ -89,15 +89,15 @@ export default function UserSessions() {
                     <CardContent className="pt-4">
                       <dl className="grid grid-cols-2 gap-2 text-sm">
                         <SessionDetail label="IP" value={session.ip} />
-                        <SessionDetail label="Country" value={session.countryName} />
-                        <SessionDetail label="Browser" value={`${session.clientEngine} ${session.clientEngineVersion}`} />
-                        <SessionDetail label="Device Brand" value={session.deviceBrand} />
-                        <SessionDetail label="Device Name" value={session.deviceName} />
-                        <SessionDetail label="Client Name" value={session.clientName} />
-                        <SessionDetail label="Client Type" value={session.clientType} />
-                        <SessionDetail label="Created" value={new Date(session.$createdAt).toLocaleString()} />
-                        <SessionDetail label="Provider" value={session.provider} />
-                        <SessionDetail label="Provider Uid" value={session.providerUid} />
+                        <SessionDetail label="Shteti" value={session.countryName} />
+                        <SessionDetail label="Shfletuesi" value={`${session.clientEngine} ${session.clientEngineVersion}`} />
+                        <SessionDetail label="Marka e pajisjes" value={session.deviceBrand} />
+                        <SessionDetail label="Emri i pajisjes" value={session.deviceName} />
+                        <SessionDetail label="Emri i klientit" value={session.clientName} />
+                        <SessionDetail label="Tipi i klientit" value={session.clientType} />
+                        <SessionDetail label="Krijuar" value={new Date(session.$createdAt).toLocaleString()} />
+                        <SessionDetail label="Ofruesi" value={session.provider} />
+                        <SessionDetail label="Ofruesi ID" value={session.providerUid} />
                       </dl>
                       <div className="mt-4">
                         <Button 

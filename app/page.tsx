@@ -38,12 +38,12 @@ import moment from "moment-timezone";
 
 export interface ITopRoute {
   total_views: number;
-  from_station: string; 
-  to_station: string; 
+  from_station: string;
+  to_station: string;
   _id: {
     from: string;
     to: string;
-  }; 
+  };
 }
 
 export default function Dashboard() {
@@ -61,11 +61,10 @@ export default function Dashboard() {
       const operator_id = user?.$id;
 
       const res = await axios.get(`${API_URL}/operator/reports/revenue/${operator_id}`)
-      console.log({data: res.data.data});
-      setTotalRevenue(res.data.data.revenueData[0].revenue);
-      setTotalPassengers(res.data.data.revenueData[0].total_passengers);
-      setTopRoute(res.data.data.topRoute[0]);
-      setThisMonthsRevenue(res.data.data.this_months_revenue[0].revenue);
+      setTotalRevenue(res?.data?.data?.revenueData[0]?.revenue);
+      setTotalPassengers(res?.data?.data?.revenueData[0]?.total_passengers);
+      setTopRoute(res?.data?.data?.topRoute[0]);
+      setThisMonthsRevenue(res?.data?.data?.this_months_revenue[0]?.revenue);
     } catch (error) {
       console.log(error)
     }
@@ -75,38 +74,35 @@ export default function Dashboard() {
     try {
       const operator_id = user?.$id;
       const res = await axios.get(`${API_URL}/operator/reports/last-five-bookings/${operator_id}`)
-      console.log({bokings: res.data.data});
-      setLastFiveBookings(res.data.data);
+      setLastFiveBookings(res?.data?.data);
     } catch (error) {
       console.log(error)
     }
   }
 
   useEffect(() => {
-    if(user) {
+    if (user) {
       fetchAnalytics();
       fetchLastFiveBookings();
     }
   }, [user])
-  
+
   const calculateTimePassed = (booking: Booking) => {
     try {
-      console.log({cat: booking.createdAt})
-      const createdAt = moment.utc(booking.createdAt);
+      const createdAt = moment.utc(booking?.createdAt);
       const now = moment.utc();
       const duration = moment.duration(now.diff(createdAt));
-      console.log({createdAt:createdAt.toString(), now:now.toString(), duration:duration.toString()})
 
       let days = "";
       let hrs = "";
       let mins = "";
-      
+
       days = duration.days() > 0 ? `${duration.days()} days` : "";
       hrs = duration.hours() > 0 ? `${duration.hours()} hours` : "";
       mins = duration.minutes() > 0 ? `${duration.minutes()} minutes ago` : "0 minutes ago";
-      
+
       const timePassed = [days, hrs, mins].filter(Boolean).join(", ");
-      
+
       return timePassed;
     } catch (error) {
       console.log(error)
@@ -116,69 +112,69 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen w-full flex-col">
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-          <CardTitle className="text-xl font-medium text-blue-500">
-              Welcome back, {user && user?.name}
-          </CardTitle>
+        <CardTitle className="text-xl font-medium text-blue-500">
+          Miresevini, {user && user?.name}
+        </CardTitle>
         <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
           <Card x-chunk="dashboard-01-chunk-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Revenue
+                Të ardhurat totale
               </CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalRevenue && totalRevenue.toFixed(2)} {SYMBOLS.EURO}</div>
-         
+              <div className="text-2xl font-bold">{totalRevenue && totalRevenue?.toFixed(2)} {SYMBOLS.EURO}</div>
+
             </CardContent>
           </Card>
           <Card x-chunk="dashboard-01-chunk-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Revenue this month</CardTitle>
+              <CardTitle className="text-sm font-medium">Te ardhurat kete muaj</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{thisMonthsRevenue && thisMonthsRevenue.toFixed(2) } {SYMBOLS.EURO}</div>
-         
+              <div className="text-2xl font-bold">{thisMonthsRevenue && thisMonthsRevenue?.toFixed(2)} {SYMBOLS.EURO}</div>
+
             </CardContent>
           </Card>
           <Card x-chunk="dashboard-01-chunk-1">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total sales
+                Total shitjet
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalPassengers && totalPassengers}</div>
-         
+
             </CardContent>
           </Card>
           <Card x-chunk="dashboard-01-chunk-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Most viewed route by clients</CardTitle>
+              <CardTitle className="text-sm font-medium">Linjat me te kerkuara nga klientet</CardTitle>
               <Route className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{topRoute?.from_station} - {topRoute?.to_station}</div>
-           
+
             </CardContent>
           </Card>
 
-      
+
         </div>
         <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
           <Card className="xl:col-span-2" x-chunk="dashboard-01-chunk-4">
             <CardHeader className="flex flex-row items-center">
               <div className="grid gap-2">
-                <CardTitle>Transactions</CardTitle>
+                <CardTitle>Transaksionet</CardTitle>
                 <CardDescription>
-                  Recent transactions from Busly.
+                  Transaksionet e fundit nga Go Busly.
                 </CardDescription>
               </div>
               <Button asChild size="sm" className="ml-auto gap-1">
                 <Link href="/reports/bookings">
-                  View All
+                  Shiko te gjitha
                   <ArrowUpRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -187,17 +183,17 @@ export default function Dashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Customer</TableHead>
-                      <TableHead className="hidden xl:table-column">
-                        Type
-                      </TableHead>
-                      <TableHead className="hidden xl:table-column">
-                        Status
-                      </TableHead>
-                      <TableHead className="hidden xl:table-column">
-                        Date
-                      </TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Klienti</TableHead>
+                    <TableHead className="hidden xl:table-column">
+                      Tipi
+                    </TableHead>
+                    <TableHead className="hidden xl:table-column">
+                      Statusi
+                    </TableHead>
+                    <TableHead className="hidden xl:table-column">
+                      Data
+                    </TableHead>
+                    <TableHead className="text-right">Shuma</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -206,22 +202,22 @@ export default function Dashboard() {
                       <TableCell>
                         <div className="font-medium">{booking.passengers[0].full_name}</div>
                         <div className="hidden text-sm text-muted-foreground md:inline">
-                          {booking.passengers[0].email}
-                        </div>  
+                          {booking?.passengers[0]?.email}
+                        </div>
                       </TableCell>
                       <TableCell className="hidden xl:table-column">
-                        {booking.is_paid}
+                        {booking?.is_paid}
                       </TableCell>
                       <TableCell className="hidden xl:table-column">
-                        <Badge className="text-xs" variant={booking.is_paid === true ? "outline" : "destructive"}>
-                          {booking.is_paid}
+                        <Badge className="text-xs" variant={booking?.is_paid === true ? "outline" : "destructive"}>
+                          {booking?.is_paid}
                         </Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell lg:hidden xl:table-column">
-                        {new Date(booking.departure_date).toLocaleDateString()}
+                        {new Date(booking?.departure_date).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                      {(booking?.price - booking?.service_fee).toFixed(2)} {SYMBOLS.EURO}
+                        {(booking?.price - booking?.service_fee).toFixed(2)} {SYMBOLS.EURO}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -231,24 +227,24 @@ export default function Dashboard() {
           </Card>
           <Card x-chunk="dashboard-01-chunk-5">
             <CardHeader>
-              <CardTitle>Recent Sales</CardTitle>
+              <CardTitle>Shitjet e fundit</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-8">
-             {lastFiveBookings?.map((booking) => (
-               <div key={booking?._id} className="flex items-center gap-4">
-                <Avatar className="hidden h-9 w-9 sm:flex">
-                  <AvatarImage src="/avatars/01.png" alt="Avatar" />
-                  <AvatarFallback className="uppercase">{booking?.passengers[0]?.full_name?.charAt(0)} {booking?.passengers[0]?.full_name?.split(" ")[1]?.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="grid gap-1">
-                  <p className="text-sm text-muted-foreground">
-                    {calculateTimePassed(booking)}
-                  </p>
+              {lastFiveBookings?.map((booking) => (
+                <div key={booking?._id} className="flex items-center gap-4">
+                  <Avatar className="hidden h-9 w-9 sm:flex">
+                    <AvatarImage src="/avatars/01.png" alt="Avatar" />
+                    <AvatarFallback className="uppercase">{booking?.passengers[0]?.full_name?.charAt(0)} {booking?.passengers[0]?.full_name?.split(" ")[1]?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="grid gap-1">
+                    <p className="text-sm text-muted-foreground">
+                      {calculateTimePassed(booking)}
+                    </p>
+                  </div>
+                  <div className="ml-auto font-medium">{booking?.labels?.from_city} - {booking?.labels?.to_city}</div>
                 </div>
-                <div className="ml-auto font-medium">{booking?.labels?.from_city} - {booking?.labels?.to_city}</div>
-              </div>
-            )) 
-          }
+              ))
+              }
             </CardContent>
           </Card>
         </div>

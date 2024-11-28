@@ -87,8 +87,8 @@ export default function BookingsPage() {
     <div className="container mx-auto py-10 space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle className="text-3xl font-bold">Bookings</CardTitle>
-          <CardDescription>Manage and view all your bookings in one place.</CardDescription>
+          <CardTitle className="text-3xl font-bold">Rezervimet (shitjet)</CardTitle>
+          <CardDescription>Menaxhoni dhe shikoni të gjitha rezervimet tuaja në një vend.</CardDescription>
         </CardHeader>
         <CardContent>
           <BookingsTable bookings={bookings} isLoading={isLoading} />

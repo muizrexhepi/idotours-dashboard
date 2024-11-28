@@ -12,19 +12,19 @@ import {
 
 export const NAV_LINKS = [
   {
-    title: "Routes",
+    title: "Linjat",
     icon: Package,
-    description: "Manage bus lines, routes, and ticketing.",
+    description: "Menaxhoni linjat e autobusëve, itineraret dhe biletat.",
     items: [
       {
-        title: "Route capacity",
+        title: "Te gjitha linjat",
         href: "/capacity",
-        description: "See routes capacity, start time and sales report.",
+        description: "Shikoni kapacitetin e rrugëve, kohën e fillimit dhe raportin e shitjeve.",
       },
       {
-        title: "Our routes",
+        title: "Linjat tona",
         href: "/lines/create",
-        description: "Explore our available bus routes for convenient travel planning.",
+        description: "Eksploroni linjat tona të disponueshme të autobusëve për planifikim të përshtatshëm të udhëtimit.",
       }
     ],
   },
@@ -80,19 +80,19 @@ export const NAV_LINKS = [
   //   ],
   // },
   {
-    title: "Reports",
+    title: "Raporte",
     icon: BarChart2Icon,
-    description: "Analyze bookings and sales performance.",
+    description: "Analizoni prenotimet dhe performancën e shitjeve.",
     items: [
       {
-        title: "Booking Reports",
+        title: "Raportet e rezervimit",
         href: "/reports/bookings",
-        description: "View detailed reports on bookings made.",
+        description: "Shikoni raporte të detajuara për rezervimet e bëra.",
       },
       {
-        title: "Debts",
+        title: "Borxhet",
         href: "/reports/sales",
-        description: "See how much debt we owe you.",
+        description: "Shihni sa borxh ju kemi.",
       },
       {
         title: "Online Services",
@@ -102,19 +102,19 @@ export const NAV_LINKS = [
     ],
   },
   {
-    title: "Live sessions",
+    title: "Seanca të drejtpërdrejta",
     icon: BarChart2Icon,
-    description: "View live sessions by your employees.",
+    description: "Shikoni seancat drejtpërdrejt nga punonjësit tuaj.",
     items: [
       {
-        title: "Live sessions",
+        title: "Seanca të drejtpërdrejta",
         href: "/live-sessions",
-        description: "View live sessions by your employees.",
+        description: "Shikoni seancat drejtpërdrejt nga punonjësit tuaj.",
       },
       {
         title: "Chat support",
         href: "/live-chat-support",
-        description: "View your live chat support with Go Busly.",
+        description: "Shikoni mbështetjen tuaj të bisedës live me Go Busly.",
       },
     ],
   },

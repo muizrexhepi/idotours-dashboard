@@ -43,7 +43,7 @@ export default function BookingsTable({ bookings, isLoading }: BookingsTableProp
     return (
       <Card className="w-full h-96">
         <CardContent className="flex items-center justify-center h-full">
-          <p className="text-muted-foreground text-lg">No bookings found</p>
+          <p className="text-muted-foreground text-lg">Nuk u gjet asnje rezervim</p>
         </CardContent>
       </Card>
     )
@@ -55,15 +55,14 @@ export default function BookingsTable({ bookings, isLoading }: BookingsTableProp
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="w-[200px] font-semibold">Passenger</TableHead>
+              <TableHead className="w-[200px] font-semibold">Pasagjeri</TableHead>
               <TableHead className="font-semibold">Email</TableHead>
-              <TableHead className="font-semibold">Phone</TableHead>
-              <TableHead className="font-semibold">From</TableHead>
-              <TableHead className="font-semibold">To</TableHead>
-              <TableHead className="font-semibold">Price</TableHead>
-              <TableHead className="font-semibold">Platform</TableHead>
-              <TableHead className="font-semibold">Paid</TableHead>
-              <TableHead className="text-right font-semibold">Route</TableHead>
+              <TableHead className="font-semibold">Tel.</TableHead>
+              <TableHead className="font-semibold">Nga</TableHead>
+              <TableHead className="font-semibold">Deri</TableHead>
+              <TableHead className="font-semibold">Cmimi</TableHead>
+              <TableHead className="font-semibold">Platforma</TableHead>
+              <TableHead className="text-right font-semibold">Linja ID</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -86,11 +85,6 @@ export default function BookingsTable({ bookings, isLoading }: BookingsTableProp
                   >
                     {getPlatformIcon(booking.platform)}
                     {booking.platform}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={booking.is_paid ? "default" : "destructive"} className="font-semibold">
-                    {booking.is_paid ? 'Paid' : 'Unpaid'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">{booking.route?.toString()}</TableCell>

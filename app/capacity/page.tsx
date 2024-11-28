@@ -236,7 +236,7 @@ const BusSchedule = () => {
             </PopoverContent>
           </Popover>
           <select onChange={handleLineChange} className="border p-2 rounded">
-            <option value="all">All routes</option>
+            <option value="all">Te gjitha linjat</option>
             {lines?.map((route: Route) => (
               <option key={route._id} value={route._id}>{route.code}</option>
             ))}
@@ -249,13 +249,13 @@ const BusSchedule = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>#</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Line</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>From / To</TableHead>
-                  <TableHead>Seats</TableHead>
-                  <TableHead>Bookings / Passengers</TableHead>
-                  <TableHead>Departure Time</TableHead>
+                  <TableHead>Statusi</TableHead>
+                  <TableHead>Linja</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Nga / Deri</TableHead>
+                  <TableHead>Karriget</TableHead>
+                  <TableHead>Shitjet / Pasagjeret</TableHead>
+                  <TableHead>Koha e nisjes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -284,7 +284,7 @@ const BusSchedule = () => {
                             <CardContent className="p-4">
                               <div className="flex justify-between">
                                 <Button variant="outline" className='bg-blue-500' onClick={() => router.push(`/capacity/sales-report?booking_ids=${route.bookings.map((booking) => booking._id)}`)}>
-                                  Sales report
+                                  Raportet e shitjeve
                                 </Button>
                                 <Button variant="outline" className='bg-yellow-500' onClick={() => performStateChange(route.ticket.is_active, route.ticket._id)}>
                                   {route.ticket.is_active ? "Stop Sales" : "Resume Sales"}
@@ -293,14 +293,14 @@ const BusSchedule = () => {
                                   <AlertDialogTrigger><Button variant="outline" className="text-red-500" onClick={() => setDeleteRouteId(route.ticket._id)}>Delete route</Button></AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                      <AlertDialogTitle>A jeni te sigurte?</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        This action cannot be undone. Are you sure you want to delete this route?
+                                        Ky veprim nuk mund të zhbëhet. Je i sigurt që dëshiron ta fshish këtë itinerar?
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction onClick={handleDeleteRoute}>Yes</AlertDialogAction>
+                                      <AlertDialogCancel>Anulo</AlertDialogCancel>
+                                      <AlertDialogAction onClick={handleDeleteRoute}>Po</AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                                 </AlertDialog>

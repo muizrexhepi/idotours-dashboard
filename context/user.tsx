@@ -32,17 +32,24 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const getUser = async () => {
     try {
       const currentUser = await account.get();
-      if(currentUser.labels[0] !== "operator") {
-        return router.push('/login')
+      console.log({ currentUser });
+
+      if (!currentUser) {
+        return router.push("/login");
       }
-      setUser(currentUser);  
+
+      if (!currentUser.labels?.includes("operator")) {
+        return router.push("/login");
+      }
+
+      setUser(currentUser);
     } catch (error) {
       if (error instanceof AppwriteException) {
         setError(error.message);
 
-        // if (error.code === 401 || error.message.includes("missing scope")) {
-        //   router.push("/login");
-        // }
+        if (error.code === 401 || error.message.includes("missing scope")) {
+          router.push("/login");
+        }
       } else {
         setError("An unexpected error occurred.");
       }
@@ -53,8 +60,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await account.deleteSession("current"); 
-      setUser(null); 
+      await account.deleteSession("current");
+      setUser(null);
       router.push("/login");
     } catch (error) {
       setError("Logout failed. Please try again.");

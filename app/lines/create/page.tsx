@@ -40,7 +40,7 @@ export default  function CreateLine() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-20 sm:py-10">
-      <h1 className="text-2xl font-bold mb-6">Route Management</h1>
+      <h1 className="text-2xl font-bold mb-6">Menaxhimi i linjave</h1>
       <div className="flex flex-col lg:flex-row gap-8">
         {/* <div className="w-full lg:w-1/3">
           <RouteForm stations={stations.reverse()} />

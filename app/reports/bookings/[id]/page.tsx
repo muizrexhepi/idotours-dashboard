@@ -13,6 +13,7 @@ import { SYMBOLS } from '@/lib/data'
 import { useUser } from '@/context/user'
 import { Booking } from '@/models/booking'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Alert } from '@/components/ui/alert'
 
 const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
   const { user } = useUser();
@@ -51,7 +52,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
       <div className="flex items-center justify-center h-screen ">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center p-6">
-            <h2 className="mt-4 text-2xl font-bold">Booking Not Found</h2>
+            <h2 className="mt-4 text-2xl font-bold">Rezervimi nuk u gjet</h2>
             <p className="mt-2 text-center ">We couldn&apos;t find the booking you&apos;re looking for. Please check the booking ID and try again.</p>
           </CardContent>
         </Card>
@@ -64,15 +65,19 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
   return (
     <div className="min-h-screen py-12">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <Card className="overflow-hidden shadow-lg">
+        <Alert variant={"destructive"} className='my-4'>
+          Ky rezervim është vetëm një test dhe përdoret ekskluzivisht për qëllime demonstrimi.
+        </Alert>
+         <Card className="overflow-hidden shadow-lg">
           <CardHeader className="p-6">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-3xl font-bold">Booking Details</h1>
-                <p className="text-sm opacity-80">Booking ID: {booking._id}</p>
+                <h1 className="text-3xl font-bold">Detajet e rezervimit</h1>
+                <p className="text-sm opacity-80">ID: {booking._id}</p>
+             
               </div>
               <Badge className="text-lg py-1 px-3">
-                {booking.is_paid ? "Paid" : "Unpaid"}
+                {booking.is_paid ? "Paguar" : "Pa paguar"}
               </Badge>
             </div>
           </CardHeader>
@@ -83,19 +88,19 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <BusIcon className="mr-2" />
-                      Trip Information
+                      Informacionet e udhetimit
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="items-center flex flex-col space-x-2">
                         <MapPinIcon className="text-primary" />
-                        <span className="font-semibold">Departure : {booking?.labels?.from_city}</span>
+                        <span className="font-semibold">Nisja : {booking?.labels?.from_city}</span>
                         <span className="text-sm ">{booking?.destinations?.departure_station_label}</span>
                       </div>
                       <div className=" flex flex-col items-center space-x-2">
                         <MapPinIcon className="text-primary" />
-                        <span className="font-semibold">Arrival : {booking?.labels?.to_city}</span>
+                        <span className="font-semibold">Mberritja : {booking?.labels?.to_city}</span>
                         <span className="text-sm">{booking?.destinations?.arrival_station_label}</span>
                       </div>
                     </div>
@@ -112,7 +117,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                     </div>
 
                     <div className="flex items-center space-x-2">
-                      <Badge variant="outline">Origin : {booking?.platform}</Badge>
+                      <Badge variant="outline">Origjina : {booking?.platform}</Badge>
                     </div>
                   </CardContent>
                 </Card>
@@ -121,7 +126,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <UserIcon className="mr-2" />
-                      Passenger Information
+                      Informacionet e pasagjerit
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -130,24 +135,24 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                         <CardHeader>
                           <CardTitle className="flex items-center">
                             <UserIcon className="mr-2" />
-                            Passenger {index + 1}
+                            Pasagjeri {index + 1}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
                           <div className="flex justify-between items-center">
-                            <span className="font-semibold">Full Name:</span>
+                            <span className="font-semibold">Emri:</span>
                             <span>{passenger?.full_name}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="font-semibold">Email:</span>
+                            <span className="font-semibold">Emaili:</span>
                             <span>{passenger?.email}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="font-semibold">Phone:</span>
+                            <span className="font-semibold">Tel:</span>
                             <span>{passenger?.phone}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="font-semibold">Price:</span>
+                            <span className="font-semibold">Cmimi:</span>
                             <Badge variant="secondary">${passenger?.price?.toFixed(2)}</Badge>
                           </div>
                         </CardContent>
@@ -162,38 +167,38 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <CreditCardIcon className="mr-2" />
-                      Payment Information
+                      Informacionet e pageses
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="font-semibold">Total Price:</span>
+                      <span className="font-semibold">Cmimi total:</span>
                       <span className="text-2xl font-bold">${booking?.price?.toFixed(2)}</span>
                     </div>
                     {booking?.charge && (
                       <>
                         <div className="space-y-2">
-                          <div className="font-semibold">Charge Details:</div>
+                          <div className="font-semibold">Detajet e tarifës:</div>
                           <div className="flex justify-between">
-                            <span>Amount Charged:</span>
+                            <span>Shuma e ngarkuar:</span>
                             <span>${(booking?.price).toFixed(2)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Busly Service Fee:</span>
+                            <span>Tarifa e Shërbimit GoBusly:</span>
                             <span>${(booking?.service_fee)?.toFixed(2) || "0.00"}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Your Profit:</span>
+                            <span>Fitimi juaj:</span>
                             <span>
                               {SYMBOLS.EURO} {(booking?.price - (booking?.service_fee || 0)).toFixed(2)}
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Currency:</span>
+                            <span>Valuta:</span>
                             <span>{booking?.charge?.currency?.toUpperCase() || "N/A"}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span>Payment Method:</span>
+                            <span>Metoda e pageses:</span>
                             <div className="flex items-center space-x-2">
                               <CreditCardIcon className="text-primary" />
                               <span>{booking?.charge?.payment_method_details?.card?.brand?.toUpperCase()} **** {booking?.charge?.payment_method_details?.card?.last4}</span>
@@ -209,7 +214,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <PhoneIcon className="mr-2" />
-                      Contact Information
+                      Informacionet e kontaktit
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -226,19 +231,19 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Booking Metadata</CardTitle>
+                    <CardTitle>Të dhënat meta të rezervimit</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm ">Charge ID:</span>
+                      <span className="text-sm ">ID e tarifës:</span>
                       <span className="font-mono text-xs p-1 rounded">{booking.charge?.id}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm ">Payment Intent ID:</span>
+                      <span className="text-sm ">ID-ja e qëllimit të pagesës</span>
                       <span className="font-mono text-xs p-1 rounded">{booking.metadata.payment_intent_id}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <Link href={booking.charge?.receipt_url!} target='_blank' className="text-sm  underline">Click here to view receipt</Link>
+                      <Link href={booking.charge?.receipt_url!} target='_blank' className="text-sm  underline">Klikoni këtu për të parë faturën</Link>
                     </div>
                   </CardContent>
                 </Card>

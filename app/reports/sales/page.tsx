@@ -79,10 +79,10 @@ const Page = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-    <h1 className="text-3xl font-bold mb-6 text-gray-800">Busly Monthly Debt Owed to You</h1>
+    <h1 className="text-3xl font-bold mb-6 text-gray-800">Borxhi i ngarkuar mujor që ju detyrohet</h1>
     <div className="mb-6 flex flex-wrap items-center gap-4">
         <div className="flex flex-wrap gap-2">
-          {months.map((monthName: string) => (
+          {months?.map((monthName: string) => (
             <Button
               key={monthName}
               onClick={() => handleSetMonth(monthName)}
@@ -108,7 +108,7 @@ const Page = () => {
         </Select>
       </div>
 
-      {sortedDebts.length > 0 ? (
+      {sortedDebts?.length > 0 ? (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="w-full">
             <thead>
@@ -119,7 +119,7 @@ const Page = () => {
                     onClick={() => handleSort('operator')}
                     className="hover:bg-gray-200"
                   >
-                    Operator
+                    Kompania
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </th>
@@ -129,7 +129,7 @@ const Page = () => {
                     onClick={() => handleSort('debt')}
                     className="hover:bg-gray-200"
                   >
-                    Amount
+                    Shuma
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </th>

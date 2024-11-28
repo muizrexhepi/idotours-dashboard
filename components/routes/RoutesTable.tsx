@@ -33,7 +33,7 @@ const RoutesTable = ({ routes }: { routes: Route[] }) => {
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <Input
             className="pl-10"
-            placeholder="Search cities..."
+            placeholder="Kerko linja"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -43,18 +43,18 @@ const RoutesTable = ({ routes }: { routes: Route[] }) => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>From</TableHead>
-              <TableHead>To</TableHead>
-              <TableHead>Luggage size</TableHead>
-              <TableHead>Extra luggage price</TableHead>
-              <TableHead>Free luggages</TableHead>
+              <TableHead>Kodi</TableHead>
+              <TableHead>Kontakt</TableHead>
+              <TableHead>Nisja</TableHead>
+              <TableHead>Mberritja</TableHead>
+              <TableHead>Madhesia e bagazhit</TableHead>
+              <TableHead>Cmimi per bagazh ekstra</TableHead>
+              <TableHead>Bagazhe free</TableHead>
               {/* <TableHead></TableHead> */}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRoutes.map((route: Route, index: number) => (
+            {filteredRoutes?.map((route: Route, index: number) => (
               <TableRow key={index}>
                 <TableCell>{route?.code}</TableCell>
                 <TableCell>{route?.contact?.phone}</TableCell>
