@@ -14,7 +14,7 @@ export interface Booking {
     route: Route | string;
     agency: Agency | string;
     departure_date: Date;
-    operator:Operator;
+    operator: Operator;
     destinations: {
         departure_station: Station | string;
         arrival_station: Station | string;
@@ -40,6 +40,7 @@ export interface Booking {
     service_fee: number;
     platform: Platforms;
     is_paid: boolean;
+    test_mode: boolean;
     metadata: BookingMetadata;
     charge?: Charge;
     createdAt: string;

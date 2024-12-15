@@ -9,7 +9,6 @@ import { AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
-import { Client, Account } from 'appwrite'
 
 export default function UserSessions() {
   const { user } = useUser()

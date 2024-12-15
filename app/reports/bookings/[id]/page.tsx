@@ -65,16 +65,16 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
   return (
     <div className="min-h-screen py-12">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <Alert variant={"destructive"} className='my-4'>
+        {booking?.test_mode && <Alert variant={"destructive"} className='my-4'>
           Ky rezervim është vetëm një test dhe përdoret ekskluzivisht për qëllime demonstrimi.
-        </Alert>
-         <Card className="overflow-hidden shadow-lg">
+        </Alert>}
+        <Card className="overflow-hidden shadow-lg">
           <CardHeader className="p-6">
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold">Detajet e rezervimit</h1>
                 <p className="text-sm opacity-80">ID: {booking._id}</p>
-             
+
               </div>
               <Badge className="text-lg py-1 px-3">
                 {booking.is_paid ? "Paguar" : "Pa paguar"}
