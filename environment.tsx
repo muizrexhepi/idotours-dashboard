@@ -1,5 +1,5 @@
 // export const API_URL = "http://localhost:1234";
-export const API_URL = "https://api.gobusly.com";
+export const API_URL = "https://api-v2.gobusly.com";
 export const SUPPORT_URL = "https://www.gobusly.com/help/help/contact-support"
 export const HELP_URL = "https://www.gobusly.com/help"
 
