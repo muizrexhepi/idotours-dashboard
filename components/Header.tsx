@@ -1,19 +1,28 @@
 "use client";
-import Link from "next/link";
 
-import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Search, Settings, ShoppingCart } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
+import { Menu, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { NAV_LINKS } from "@/lib/data";
 import { HeaderNavigationMenu } from "./navigation-menu";
 import { ThemeToggle } from "./theme-toggle";
 import ProfileButton from "./profile-button";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const Header = () => {
   const path = usePathname();
+  const [openItems, setOpenItems] = useState<string[]>([]);
+
+  const toggleItem = (title: string) => {
+    setOpenItems((prev) =>
+      prev.includes(title) ? prev.filter((item) => item !== title) : [...prev, title]
+    );
+  };
 
   return (
     <header
@@ -32,17 +41,6 @@ const Header = () => {
           BUSLY
           <span className="sr-only">Busly</span>
         </Link>
-        {/* {NAV_LINKS.map((link, index) => (
-          <Link
-            key={index}
-            href={link.url}
-            className={cn("text-muted-foreground hover:text-foreground", {
-              "text-foreground": path == link.url,
-            })}
-          >
-            {link.title}
-          </Link>
-        ))} */}
         <HeaderNavigationMenu />
       </nav>
       <Sheet>
@@ -54,31 +52,49 @@ const Header = () => {
         </SheetTrigger>
         <SheetContent side="left">
           <nav className="grid gap-6 text-lg font-medium">
-            <Link
-              href={"/"}
-              className="flex items-center gap-2 text-2xl font-semibold"
-            >
-              BUSLY
-              <span className="sr-only">Busly</span>
-            </Link>
             <div className="space-y-2">
-              {NAV_LINKS.map((link) =>
-                link.items?.map((item, index) => (
-                  <Link
-                    key={index}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                      {
-                        "bg-muted": path.includes(item.href),
-                      }
+              <Link
+                href={"/"}
+                className="flex items-center gap-2 text-2xl font-semibold mb-4"
+              >
+                BUSLY
+                <span className="sr-only">Busly</span>
+              </Link>
+              {NAV_LINKS.map((link) => (
+                <Collapsible
+                  key={link.title}
+                  open={openItems.includes(link.title)}
+                  onOpenChange={() => toggleItem(link.title)}
+                >
+                  <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-muted-foreground transition-all hover:text-primary">
+                    <div className="flex items-center gap-3">
+                      <link.icon className="size-4" />
+                      {link.title}
+                    </div>
+                    {openItems.includes(link.title) ? (
+                      <ChevronUp className="size-4" />
+                    ) : (
+                      <ChevronDown className="size-4" />
                     )}
-                  >
-                    <link.icon className="size-4" />
-                    {link.title}
-                  </Link>
-                ))
-              )}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="ml-7 mt-2 space-y-2">
+                    {link.items?.map((item, index) => (
+                      <Link
+                        key={index}
+                        href={item.href}
+                        className={cn(
+                          "block rounded-lg px-3 py-2 text-sm text-muted-foreground transition-all hover:text-primary",
+                          {
+                            "bg-muted text-primary": path.includes(item.href),
+                          }
+                        )}
+                      >
+                        {item.title}
+                      </Link>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
             </div>
           </nav>
         </SheetContent>
@@ -102,3 +118,4 @@ const Header = () => {
 };
 
 export default Header;
+
