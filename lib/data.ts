@@ -8,6 +8,13 @@ import {
   Users2,
   Globe,
   BarChart2Icon,
+  List,
+  PlusCircle,
+  Calendar,
+  DollarSign,
+  Globe2,
+  Activity,
+  MessageCircle,
 } from "lucide-react";
 
 export const NAV_LINKS = [
@@ -19,66 +26,19 @@ export const NAV_LINKS = [
       {
         title: "Te gjitha linjat",
         href: "/capacity",
-        description: "Shikoni kapacitetin e rrugëve, kohën e fillimit dhe raportin e shitjeve.",
+        description:
+          "Shikoni kapacitetin e rrugëve, kohën e fillimit dhe raportin e shitjeve.",
+        icon: List,
       },
       {
         title: "Linjat tona",
         href: "/lines/create",
-        description: "Eksploroni linjat tona të disponueshme të autobusëve për planifikim të përshtatshëm të udhëtimit.",
-      }
+        description:
+          "Eksploroni linjat tona të disponueshme të autobusëve për planifikim të përshtatshëm të udhëtimit.",
+        icon: PlusCircle,
+      },
     ],
   },
-  // {
-  //   title: "Agencies",
-  //   icon: Package,
-  //   description: "Manage agencies/partners.",
-  //   items: [
-  //     {
-  //       title: "Agencies",
-  //       href: "/agencies/create",
-  //       description: "View existing agents or create new ones with ease.",
-  //     },
-  //   ],
-  // },
-  // {
-  //   title: "Documents",
-  //   icon: BookOpen,
-  //   description: "Manage and review necessary documents.",
-  //   items: [
-  //     {
-  //       title: "Driver Documents",
-  //       href: "/documents/driver",
-  //       description: "View and upload documents required for drivers.",
-  //     },
-  //     {
-  //       title: "Bus Documents",
-  //       href: "/documents/bus",
-  //       description: "Manage documents related to buses, such as licenses.",
-  //     },
-  //     {
-  //       title: "Expired Documents",
-  //       href: "/documents/expired",
-  //       description: "Review and renew expired or expiring documents.",
-  //     },
-  //   ],
-  // },
-  // {
-  //   title: "Employees",
-  //   icon: Users2,
-  //   description: "Manage your staff and their roles.",
-  //   items: [
-  //     {
-  //       title: "Manage Employees",
-  //       href: "/employees/manage",
-  //       description: "View and manage employee information and roles.",
-  //     },
-  //     {
-  //       title: "Add Employee",
-  //       href: "/employees/add",
-  //       description: "Add new employees to your organization.",
-  //     },
-  //   ],
-  // },
   {
     title: "Raporte",
     icon: BarChart2Icon,
@@ -88,16 +48,20 @@ export const NAV_LINKS = [
         title: "Raportet e rezervimit",
         href: "/reports/bookings",
         description: "Shikoni raporte të detajuara për rezervimet e bëra.",
+        icon: Calendar,
       },
       {
         title: "Borxhet",
         href: "/reports/sales",
         description: "Shihni sa borxh ju kemi.",
+        icon: DollarSign,
       },
       {
         title: "Online Services",
         href: "/online",
-        description: "Access and manage online services related to your operations.",
+        description:
+          "Access and manage online services related to your operations.",
+        icon: Globe2,
       },
     ],
   },
@@ -110,23 +74,22 @@ export const NAV_LINKS = [
         title: "Seanca të drejtpërdrejta",
         href: "/live-sessions",
         description: "Shikoni seancat drejtpërdrejt nga punonjësit tuaj.",
+        icon: Activity,
       },
       {
         title: "Chat support",
         href: "/live-chat-support",
         description: "Shikoni mbështetjen tuaj të bisedës live me Go Busly.",
+        icon: MessageCircle,
       },
     ],
   },
-
 ];
-
 
 export const SYMBOLS = {
   EURO: "€",
-}
-
+};
 
 export const USER_LABELS = {
   OPERATOR: "operator",
-}
+};

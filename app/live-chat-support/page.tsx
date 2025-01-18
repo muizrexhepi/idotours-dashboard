@@ -1,19 +1,19 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import socket from '@/utils/socket'
-import { useUser } from '@/context/user'
-import { API_URL, GOBUSLY_SUPPORT_USER_ID } from '@/environment'
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import socket from "@/utils/socket";
+import { useUser } from "@/context/user";
+import { API_URL, GOBUSLY_SUPPORT_USER_ID } from "@/environment";
 
 interface Message {
-  _id: string
-  sender: string
-  receiver: string
-  content: string
-  timestamp: string
+  _id: string;
+  sender: string;
+  receiver: string;
+  content: string;
+  timestamp: string;
 }
 
 interface CeoOperator {
@@ -27,127 +27,129 @@ interface TypingInfo {
 }
 
 export default function AdminChat() {
-  const [operators, setOperators] = useState<CeoOperator[]>([])
-  const [selectedOperator, setSelectedOperator] = useState<Partial<CeoOperator> | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [newMessage, setNewMessage] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [isTyping, setIsTyping] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const typingTimeoutRef = useRef<NodeJS.Timeout>()
+  const [operators, setOperators] = useState<CeoOperator[]>([]);
+  const [selectedOperator, setSelectedOperator] =
+    useState<Partial<CeoOperator> | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
-  const { user } = useUser()
+  const { user } = useUser();
 
   useEffect(() => {
-    fetchOperators()
-    setupSocketListeners()
+    fetchOperators();
+    setupSocketListeners();
 
     return () => {
-      socket.off('receiveMessage')
-      socket.off('typing')
+      socket.off("receiveMessage");
+      socket.off("typing");
       if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current)
+        clearTimeout(typingTimeoutRef.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   useEffect(() => {
     if (selectedOperator) {
-      fetchMessages()
+      fetchMessages();
     }
-  }, [selectedOperator])
+  }, [selectedOperator]);
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    scrollToBottom();
+  }, [messages]);
 
   const fetchOperators = async () => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       setOperators([
         {
           _id: GOBUSLY_SUPPORT_USER_ID,
-          name: "Go Busly support"
-        }
-      ])
+          name: "Go Busly support",
+        },
+      ]);
     } catch (error) {
-      console.error('Failed to fetch operators', error)
+      console.error("Failed to fetch operators", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const setupSocketListeners = () => {
     if (!user?.$id) return;
-    
-    socket.emit('joinRoom', user.$id)
 
-    socket.on('receiveMessage', (message: Message) => {
-      setMessages(prev => [...prev, message])
-    })
+    socket.emit("joinRoom", user.$id);
 
-    socket.on('typing', (typingInfo: TypingInfo) => {
-      console.log('Received typing event:', typingInfo)
+    socket.on("receiveMessage", (message: Message) => {
+      setMessages((prev) => [...prev, message]);
+    });
+
+    socket.on("typing", (typingInfo: TypingInfo) => {
+      console.log("Received typing event:", typingInfo);
       if (typingInfo.sender !== user.$id) {
-        setIsTyping(typingInfo.isTyping)
+        setIsTyping(typingInfo.isTyping);
         if (typingInfo.isTyping) {
           if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current)
+            clearTimeout(typingTimeoutRef.current);
           }
           typingTimeoutRef.current = setTimeout(() => {
-            setIsTyping(false)
-          }, 3000)
+            setIsTyping(false);
+          }, 3000);
         }
       }
-    })
-  }
+    });
+  };
 
   const fetchMessages = async () => {
     try {
-      setIsLoading(true)
-      const response = await fetch(`${API_URL}/operator/messages/${GOBUSLY_SUPPORT_USER_ID}?sender=${user?.$id}`)
-      const data = await response.json()
-      setMessages(data.data)
+      setIsLoading(true);
+      const response = await fetch(
+        `${API_URL}/operator/messages/${GOBUSLY_SUPPORT_USER_ID}?sender=${user?.$id}`
+      );
+      const data = await response.json();
+      setMessages(data.data);
     } catch (error) {
-      console.error('Failed to fetch messages', error)
+      console.error("Failed to fetch messages", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const sendMessage = () => {
-    if (!selectedOperator || !newMessage.trim() || !user?.$id) return
+    if (!selectedOperator || !newMessage.trim() || !user?.$id) return;
 
     const message: Partial<Message> = {
       sender: user.$id,
       receiver: selectedOperator._id,
       content: newMessage,
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    };
 
-    socket.emit('sendMessage', message)
-    setMessages(prev => [...prev, message as Message])
-    setNewMessage('')
-  }
+    socket.emit("sendMessage", message);
+    setMessages((prev) => [...prev, message as Message]);
+    setNewMessage("");
+  };
 
   const handleTyping = () => {
     if (!selectedOperator?._id || !user?.$id) return;
-    
-    socket.emit('typing', {
+
+    socket.emit("typing", {
       sender: user.$id,
       receiver: selectedOperator._id,
-      isTyping: true
-    })
-  }
-
+      isTyping: true,
+    });
+  };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
-    <div className="flex h-[93vh] bg-background">
-      <div className="w-1/4 bg-card p-4 border-r border-border">
+    <div className="flex bg-background">
+      <div className="bg-card p-4 border-r border-border">
         <h2 className="text-2xl font-bold mb-4">Operators</h2>
         {isLoading ? (
           <div className="flex justify-center items-center h-full">
@@ -158,7 +160,9 @@ export default function AdminChat() {
             {operators.map((op) => (
               <Button
                 key={op._id}
-                variant={selectedOperator?._id === op._id ? "secondary" : "ghost"}
+                variant={
+                  selectedOperator?._id === op._id ? "secondary" : "ghost"
+                }
                 className="w-full justify-start mb-2"
                 onClick={() => setSelectedOperator(op)}
               >
@@ -176,7 +180,9 @@ export default function AdminChat() {
       <div className="flex-1 flex flex-col">
         <div className="bg-card p-4 shadow">
           <h2 className="text-2xl font-bold">
-            {selectedOperator ? `Chat with ${selectedOperator.name}` : 'Select a chat'}
+            {selectedOperator
+              ? `Chat with ${selectedOperator.name}`
+              : "Select a chat"}
           </h2>
         </div>
         <ScrollArea className="flex-1 p-4">
@@ -184,14 +190,14 @@ export default function AdminChat() {
             <div
               key={index}
               className={`mb-4 ${
-                msg.sender === user?.$id ? 'text-right' : 'text-left'
+                msg.sender === user?.$id ? "text-right" : "text-left"
               }`}
             >
               <div
                 className={`inline-block p-2 rounded-lg ${
                   msg.sender === user?.$id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted'
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted"
                 }`}
               >
                 {msg.content}
@@ -202,7 +208,9 @@ export default function AdminChat() {
             </div>
           ))}
           {isTyping && (
-            <div className="text-muted-foreground italic">Operator is typing...</div>
+            <div className="text-muted-foreground italic">
+              Operator is typing...
+            </div>
           )}
           <div ref={messagesEndRef} />
         </ScrollArea>
@@ -213,7 +221,7 @@ export default function AdminChat() {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleTyping}
-              onKeyUp={(e) => e.key === 'Enter' && sendMessage()}
+              onKeyUp={(e) => e.key === "Enter" && sendMessage()}
               placeholder="Type a message..."
               className="flex-1 mr-2"
             />
@@ -227,6 +235,5 @@ export default function AdminChat() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

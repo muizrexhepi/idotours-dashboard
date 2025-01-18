@@ -17,15 +17,15 @@ const ProfileButton = () => {
 
   const handleLogout = async () => {
     await account.deleteSessions();
-    router.push('/login')
+    router.push("/login");
   };
 
   const handleSettings = async () => {
-    router.push('/settings')
+    router.push("/settings");
   };
 
   const handleSupport = async () => {
-    router.push(HELP_URL)
+    router.push(HELP_URL);
   };
 
   return (
