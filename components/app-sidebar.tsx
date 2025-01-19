@@ -25,10 +25,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
+import { useUser } from "@/context/user";
 
 export function AppSidebar() {
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const { user } = useUser();
   const handleLogout = async () => {
     await account.deleteSessions();
     router.push("/login");
@@ -40,7 +42,7 @@ export function AppSidebar() {
           <Link href={"/"}>
             <Image
               src={`/assets/icons/${
-                theme == "light" ? "dark-logo.svg" : "logo.svg"
+                resolvedTheme === "light" ? "dark-logo.svg" : "logo.svg"
               }`}
               alt="Logo"
               className="h-7 w-auto"
@@ -106,7 +108,7 @@ export function AppSidebar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton>
-                  <User2 /> Username
+                  <User2 /> {user?.name}
                   <ChevronUp className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>

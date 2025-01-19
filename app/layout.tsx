@@ -8,6 +8,7 @@ import { UserProvider } from "../context/user";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { cookies } from "next/headers";
+import SupportChat from "./live-chat-support/page";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -52,6 +53,7 @@ export default async function RootLayout({
         >
           <SidebarProvider defaultOpen={defaultOpen}>
             <UserProvider>
+              <SupportChat />
               <AppSidebar />
               <SidebarTrigger className="m-2" />
               {children}

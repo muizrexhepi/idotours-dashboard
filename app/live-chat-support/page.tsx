@@ -4,6 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { MessageCircle, Send, X } from "lucide-react";
 import socket from "@/utils/socket";
 import { useUser } from "@/context/user";
 import { API_URL, GOBUSLY_SUPPORT_USER_ID } from "@/environment";
@@ -16,32 +20,27 @@ interface Message {
   timestamp: string;
 }
 
-interface CeoOperator {
-  _id: string;
-  name: string;
-}
-
 interface TypingInfo {
   sender: string;
   isTyping: boolean;
 }
 
-export default function AdminChat() {
-  const [operators, setOperators] = useState<CeoOperator[]>([]);
-  const [selectedOperator, setSelectedOperator] =
-    useState<Partial<CeoOperator> | null>(null);
+export default function SupportChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
   const { user } = useUser();
 
   useEffect(() => {
-    fetchOperators();
     setupSocketListeners();
+    if (isChatOpen) {
+      fetchMessages();
+    }
 
     return () => {
       socket.off("receiveMessage");
@@ -50,33 +49,11 @@ export default function AdminChat() {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, []);
-
-  useEffect(() => {
-    if (selectedOperator) {
-      fetchMessages();
-    }
-  }, [selectedOperator]);
+  }, [isChatOpen]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const fetchOperators = async () => {
-    try {
-      setIsLoading(true);
-      setOperators([
-        {
-          _id: GOBUSLY_SUPPORT_USER_ID,
-          name: "Go Busly support",
-        },
-      ]);
-    } catch (error) {
-      console.error("Failed to fetch operators", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const setupSocketListeners = () => {
     if (!user?.$id) return;
@@ -88,7 +65,6 @@ export default function AdminChat() {
     });
 
     socket.on("typing", (typingInfo: TypingInfo) => {
-      console.log("Received typing event:", typingInfo);
       if (typingInfo.sender !== user.$id) {
         setIsTyping(typingInfo.isTyping);
         if (typingInfo.isTyping) {
@@ -119,11 +95,11 @@ export default function AdminChat() {
   };
 
   const sendMessage = () => {
-    if (!selectedOperator || !newMessage.trim() || !user?.$id) return;
+    if (!newMessage.trim() || !user?.$id) return;
 
     const message: Partial<Message> = {
       sender: user.$id,
-      receiver: selectedOperator._id,
+      receiver: GOBUSLY_SUPPORT_USER_ID,
       content: newMessage,
       timestamp: new Date().toISOString(),
     };
@@ -134,11 +110,11 @@ export default function AdminChat() {
   };
 
   const handleTyping = () => {
-    if (!selectedOperator?._id || !user?.$id) return;
+    if (!user?.$id) return;
 
     socket.emit("typing", {
       sender: user.$id,
-      receiver: selectedOperator._id,
+      receiver: GOBUSLY_SUPPORT_USER_ID,
       isTyping: true,
     });
   };
@@ -147,93 +123,89 @@ export default function AdminChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const toggleChat = () => {
+    setIsChatOpen(!isChatOpen);
+  };
+
   return (
-    <div className="flex bg-background">
-      <div className="bg-card p-4 border-r border-border">
-        <h2 className="text-2xl font-bold mb-4">Operators</h2>
-        {isLoading ? (
-          <div className="flex justify-center items-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : (
-          <ScrollArea className="h-[calc(100vh-8rem)]">
-            {operators.map((op) => (
-              <Button
-                key={op._id}
-                variant={
-                  selectedOperator?._id === op._id ? "secondary" : "ghost"
-                }
-                className="w-full justify-start mb-2"
-                onClick={() => setSelectedOperator(op)}
-              >
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-2">
-                    {op.name[0]}
-                  </div>
-                  {op.name}
-                </div>
-              </Button>
-            ))}
-          </ScrollArea>
-        )}
-      </div>
-      <div className="flex-1 flex flex-col">
-        <div className="bg-card p-4 shadow">
-          <h2 className="text-2xl font-bold">
-            {selectedOperator
-              ? `Chat with ${selectedOperator.name}`
-              : "Select a chat"}
-          </h2>
-        </div>
-        <ScrollArea className="flex-1 p-4">
-          {messages?.map((msg, index) => (
-            <div
-              key={index}
-              className={`mb-4 ${
-                msg.sender === user?.$id ? "text-right" : "text-left"
-              }`}
-            >
-              <div
-                className={`inline-block p-2 rounded-lg ${
-                  msg.sender === user?.$id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
-                }`}
-              >
-                {msg.content}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {new Date(msg.timestamp).toLocaleTimeString()}
-              </div>
-            </div>
-          ))}
-          {isTyping && (
-            <div className="text-muted-foreground italic">
-              Operator is typing...
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </ScrollArea>
-        <div className="bg-card p-4 border-t border-border">
-          <div className="flex items-center">
-            <Input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleTyping}
-              onKeyUp={(e) => e.key === "Enter" && sendMessage()}
-              placeholder="Type a message..."
-              className="flex-1 mr-2"
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={!selectedOperator || !newMessage.trim()}
-            >
-              Send
+    <div className="fixed bottom-4 right-4 z-50">
+      {!isChatOpen && (
+        <Button onClick={toggleChat} className="rounded-full w-16 h-16">
+          <MessageCircle size={24} />
+        </Button>
+      )}
+      {isChatOpen && (
+        <Card className="w-80 h-[500px] flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 py-2 border-b">
+            <CardTitle className="text-sm font-semibold">
+              Go Busly Support
+            </CardTitle>
+            <Button variant="ghost" size="icon" onClick={toggleChat}>
+              <X size={18} />
             </Button>
-          </div>
-        </div>
-      </div>
+          </CardHeader>
+          <CardContent className="flex-grow overflow-hidden p-0">
+            <ScrollArea className="h-full p-4">
+              {isLoading ? (
+                <div className="flex justify-center items-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                messages.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`flex mb-4 ${
+                      msg.sender === user?.$id ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    {msg.sender !== user?.$id && (
+                      <Avatar className="w-8 h-8 mr-2">
+                        <AvatarImage src="/support-avatar.png" />
+                        <AvatarFallback>GS</AvatarFallback>
+                      </Avatar>
+                    )}
+                    <div
+                      className={`max-w-[70%] p-3 rounded-lg ${
+                        msg.sender === user?.$id
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary"
+                      }`}
+                    >
+                      <p className="text-sm">{msg.content}</p>
+                      <p className="text-xs opacity-70 mt-1">
+                        {new Date(msg.timestamp).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+              {isTyping && (
+                <div className="text-muted-foreground italic text-sm">
+                  Support is typing...
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </ScrollArea>
+          </CardContent>
+          <Separator />
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={handleTyping}
+                onKeyUp={(e) => e.key === "Enter" && sendMessage()}
+                placeholder="Type a message..."
+                className="flex-1 mr-2"
+              />
+              <Button onClick={sendMessage} disabled={!newMessage.trim()}>
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

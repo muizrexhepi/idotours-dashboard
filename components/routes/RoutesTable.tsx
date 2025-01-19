@@ -17,18 +17,29 @@ import { deleteRoute } from "@/actions/route";
 const RoutesTable = ({ routes }: { routes: Route[] }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredRoutes = routes
+  const filteredRoutes = routes.filter((route) =>
+    [
+      route.code,
+      route.contact?.phone,
+      route.destination?.from,
+      route.destination?.to,
+    ]
+      .filter(Boolean)
+      .some((field) =>
+        field.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      )
+  );
 
   const handleDelete = async (route_id: string) => {
     await deleteRoute(route_id).then((res) => {
-      console.log({res})
+      console.log({ res });
       toast({ description: res });
     });
   };
 
   return (
     <>
-      <div className="mb-4">
+      <div className="p-4">
         <div className="relative">
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <Input
@@ -50,11 +61,10 @@ const RoutesTable = ({ routes }: { routes: Route[] }) => {
               <TableHead>Madhesia e bagazhit</TableHead>
               <TableHead>Cmimi per bagazh ekstra</TableHead>
               <TableHead>Bagazhe free</TableHead>
-              {/* <TableHead></TableHead> */}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRoutes?.map((route: Route, index: number) => (
+            {filteredRoutes.map((route, index) => (
               <TableRow key={index}>
                 <TableCell>{route?.code}</TableCell>
                 <TableCell>{route?.contact?.phone}</TableCell>
@@ -63,12 +73,6 @@ const RoutesTable = ({ routes }: { routes: Route[] }) => {
                 <TableCell>{route?.luggages?.size}</TableCell>
                 <TableCell>{route?.luggages?.price_for_extra}</TableCell>
                 <TableCell>{route?.luggages?.free}</TableCell>
-                {/* <TableCell>
-                  <Trash2
-                    className="h-4 w-4 cursor-pointer text-destructive"
-                    onClick={() => handleDelete(route?._id!)}
-                  />
-                </TableCell> */}
               </TableRow>
             ))}
           </TableBody>

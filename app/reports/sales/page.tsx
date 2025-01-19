@@ -1,10 +1,15 @@
 "use client";
 
-import { API_URL } from "../../../environment";
 import { useEffect, useState } from "react";
 import axios, { AxiosResponse } from "axios";
-import { Button } from "../../../components/ui/button";
+import { format } from "date-fns";
 import { CalendarIcon, ArrowUpDown } from "lucide-react";
+
+import { API_URL } from "@/environment";
+import { SYMBOLS } from "@/app/Symbols";
+import { useUser } from "@/context/user";
+import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -12,9 +17,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SYMBOLS } from "../../Symbols";
-import { useToast } from "@/components/ui/use-toast";
-import { useUser } from "@/context/user";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export interface IDebt {
   operator: string;
@@ -31,7 +48,6 @@ const Page = () => {
   const [sortColumn, setSortColumn] = useState<keyof IDebt>("operator");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const { toast } = useToast();
-
   const { user } = useUser();
 
   const getDebtsByMonth = async () => {
@@ -41,29 +57,26 @@ const Page = () => {
         `${API_URL}/operator/reports/debt/owed/${operator_id}?month=${month}&year=${year}`
       );
       setDebts(response.data.data);
-      console.log(response.data.data);
     } catch (err: any) {
       toast({
-        variant: "default",
-        description: err.response.data.message,
+        variant: "destructive",
+        title: "Error",
+        description: err.response?.data?.message || "An error occurred",
       });
-      console.log(err);
     }
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && month) {
       getDebtsByMonth();
     }
-  }, [month, user]);
+  }, [month, year, user]);
 
   const handleSetMonth = (selectedMonth: string) => {
-    console.log({ selectedMonth });
     setMonth(selectedMonth);
   };
 
   const handleSetYear = (selectedYear: string) => {
-    console.log({ selectedYear });
     setYear(selectedYear);
   };
 
@@ -99,79 +112,103 @@ const Page = () => {
   const years: string[] = ["2024", "2025", "2026", "2027"];
 
   return (
-    <div className="p-6  min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 ">
-        Borxhi i ngarkuar mujor që ju detyrohet
-      </h1>
-      <div className="mb-6 flex flex-wrap items-center gap-4">
-        <div className="flex flex-wrap gap-2">
-          {months?.map((monthName: string) => (
-            <Button
-              key={monthName}
-              onClick={() => handleSetMonth(monthName)}
-              variant={month === monthName ? "default" : "outline"}
-              className="capitalize"
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {monthName}
-            </Button>
-          ))}
-        </div>
-        <Select onValueChange={handleSetYear} value={year}>
-          <SelectTrigger className="w-[180px]" defaultValue={years[0]}>
-            <SelectValue placeholder="Select Year" />
-          </SelectTrigger>
-          <SelectContent>
-            {years?.map((yearOption) => (
-              <SelectItem key={yearOption} value={yearOption}>
-                {yearOption}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {sortedDebts?.length > 0 ? (
-        <div className="rounded-lg shadow overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left uppercase text-sm">
-                <th className="py-3 px-4 font-semibold">
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleSort("operator")}
-                  >
-                    Kompania
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </th>
-                <th className="py-3 px-4 font-semibold">
-                  <Button variant="ghost" onClick={() => handleSort("debt")}>
-                    Shuma
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedDebts?.map((debt: IDebt) => (
-                <tr key={debt?._id} className="border-b">
-                  <td className="py-3 px-4 ">{debt?.operator}</td>
-                  <td className="py-3 px-4 ">
-                    {debt?.debt?.toFixed(2)} {SYMBOLS.EURO}
-                  </td>
-                </tr>
+    <div className="container mx-auto p-6 space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Monthly Charged Debt Owed to You</CardTitle>
+          <CardDescription>
+            Select a month and year to view the debts
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {months.map((monthName: string) => (
+                <Button
+                  key={monthName}
+                  onClick={() => handleSetMonth(monthName)}
+                  variant={month === monthName ? "default" : "outline"}
+                  className="capitalize"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {monthName}
+                </Button>
               ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="text-center py-8 ">
-          {month
-            ? "No debts found for the selected month and year."
-            : "Please select a month to view debts."}
-        </div>
-      )}
+              <Select onValueChange={handleSetYear} value={year}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((yearOption) => (
+                    <SelectItem key={yearOption} value={yearOption}>
+                      {yearOption}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Debt Details</CardTitle>
+          <CardDescription>
+            {month && year
+              ? `Showing debts for ${
+                  month.charAt(0).toUpperCase() + month.slice(1)
+                } ${year}`
+              : "Select a month and year to view debts"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {sortedDebts.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort("operator")}
+                      className="font-bold"
+                    >
+                      Company
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort("debt")}
+                      className="font-bold"
+                    >
+                      Amount
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedDebts.map((debt: IDebt) => (
+                  <TableRow key={debt._id}>
+                    <TableCell>{debt.operator}</TableCell>
+                    <TableCell>
+                      {debt.debt.toFixed(2)} {SYMBOLS.EURO}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              {month
+                ? "No debts found for the selected month and year."
+                : "Please select a month to view debts."}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
