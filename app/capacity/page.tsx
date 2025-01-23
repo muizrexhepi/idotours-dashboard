@@ -123,7 +123,7 @@ const BusSchedule = () => {
     setExpandedRoute(expandedRoute === id ? null : id);
   };
 
-  const handleLineChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleLineChange = (e: any) => {
     const selectedValue = e.target.value;
     if (selectedValue === "all") {
       const allLineIds = lines.map((route: Route) => route._id).join("-");
@@ -176,9 +176,9 @@ const BusSchedule = () => {
         prevRoutes.map((route) =>
           route.ticket._id === ticketId
             ? {
-                ...route,
-                ticket: { ...route.ticket, number_of_tickets: newSeats },
-              }
+              ...route,
+              ticket: { ...route.ticket, number_of_tickets: newSeats },
+            }
             : route
         )
       );
@@ -345,9 +345,8 @@ const BusSchedule = () => {
                     <TableCell>{idx + 1}</TableCell>
                     <TableCell>
                       <span
-                        className={`${
-                          route.ticket.is_active ? "bg-green-500" : "bg-red-500"
-                        } text-white px-2 py-1 rounded-full text-xs`}
+                        className={`${route.ticket.is_active ? "bg-green-500" : "bg-red-500"
+                          } text-white px-2 py-1 rounded-full text-xs`}
                       >
                         {route.ticket.is_active ? "Active" : "Inactive"}
                       </span>
