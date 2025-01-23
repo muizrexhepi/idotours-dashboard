@@ -50,13 +50,14 @@ export const NAV_LINKS = [
         description: "Shihni sa borxh ju kemi.",
         icon: DollarSign,
       },
-      {
-        title: "Online Services",
-        href: "/online",
-        description:
-          "Access and manage online services related to your operations.",
-        icon: Globe2,
-      },
+      // {
+      //   title: "Online Services",
+      //   href: "/online",
+      //   description:
+      //     "Access and manage online services related to your operations.",
+      //   icon: Globe2,
+      //   disabled:
+      // },
     ],
   },
   {

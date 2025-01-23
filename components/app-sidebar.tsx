@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import {
   Sidebar,
@@ -10,45 +10,51 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSubItem,
-} from "@/components/ui/sidebar";
-import { NAV_LINKS } from "@/lib/data";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { ChevronUp, Palette, User2 } from "lucide-react";
-import { account } from "@/appwrite.config";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { useTheme } from "next-themes";
-import { useUser } from "@/context/user";
+  useSidebar,
+} from "@/components/ui/sidebar"
+import { NAV_LINKS } from "@/lib/data"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
+import { ChevronUp, Palette, User2, LayoutDashboard } from "lucide-react"
+import { account } from "@/appwrite.config"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import Image from "next/image"
+import { useTheme } from "next-themes"
+import { useUser } from "@/context/user"
 
 export function AppSidebar() {
-  const router = useRouter();
-  const { resolvedTheme, setTheme } = useTheme();
-  const { user } = useUser();
+  const router = useRouter()
+  const { resolvedTheme, setTheme } = useTheme()
+  const { user } = useUser()
+  const { state } = useSidebar()
+
   const handleLogout = async () => {
-    await account.deleteSessions();
-    router.push("/login");
-  };
+    await account.deleteSessions()
+    router.push("/login")
+  }
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent className="bg-background">
         <div className="flex items-center justify-start px-4 pt-4">
           <Link href={"/"}>
-            <Image
-              src={`/assets/icons/${
-                resolvedTheme === "light" ? "dark-logo.svg" : "logo.svg"
-              }`}
-              alt="Logo"
-              className="h-7 w-auto"
-              width={180}
-              height={60}
-            />
+            {state === "expanded" ? (
+              <Image
+                src={`/assets/icons/${resolvedTheme === "light" ? "dark-logo.svg" : "logo.svg"}`}
+                alt="Logo"
+                className="h-7 w-auto"
+                width={180}
+                height={60}
+              />
+            ) : (
+              <Image
+                src={`/assets/icons/logo-icon.svg`}
+                alt="Logo"
+                className="size-8 object-fill"
+                width={180}
+                height={180}
+              />
+            )}
           </Link>
         </div>
         {NAV_LINKS.map((link, index) => (
@@ -82,10 +88,7 @@ export function AppSidebar() {
                       <ChevronUp className="ml-auto" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    side="right"
-                    className="w-[--radix-popper-anchor-width]"
-                  >
+                  <DropdownMenuContent side="right" className="w-[--radix-popper-anchor-width]">
                     <DropdownMenuItem onClick={() => setTheme("light")}>
                       <span>Light</span>
                     </DropdownMenuItem>
@@ -112,10 +115,7 @@ export function AppSidebar() {
                   <ChevronUp className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                side="top"
-                className="w-[--radix-popper-anchor-width]"
-              >
+              <DropdownMenuContent side="top" className="w-[--radix-popper-anchor-width]">
                 <DropdownMenuItem asChild>
                   <Link href="/settings">
                     <span>Settings</span>
@@ -130,5 +130,6 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  );
+  )
 }
+
