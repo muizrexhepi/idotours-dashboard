@@ -1,12 +1,5 @@
 import {
-  Home,
   Package,
-  Box,
-  Truck,
-  QrCode,
-  BookOpen,
-  Users2,
-  Globe,
   BarChart2Icon,
   List,
   PlusCircle,
@@ -16,6 +9,7 @@ import {
   Activity,
   MessageCircle,
 } from "lucide-react";
+
 
 export const NAV_LINKS = [
   {
