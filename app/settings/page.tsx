@@ -14,9 +14,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { useUser } from "@/context/user";
-import { Operator, OperatorRoles, CompanyMetadata } from "@/models/operator";
+import { Operator, OperatorRoles } from "@/models/operator";
+import axios from "axios";
+import { API_URL } from "@/environment";
 
 export default function SettingsPage() {
   const { user } = useUser();
@@ -73,9 +74,11 @@ export default function SettingsPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Updated operator:", operator);
+    const response = await axios.post(API_URL+"/operator/edit/"+user?.$id, operator);
+    console.log("Updated operator:", response);
+    
   };
 
   return (

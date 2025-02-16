@@ -243,7 +243,7 @@ export default function TravelApp() {
                         </ul>
                     ) : (
                         <ul className="space-y-4">
-                            {selectedStations.map((station, index) => (
+                            {selectedStations?.map((station, index) => (
                                 <li 
                                     key={index}
                                     className={`${activeStation?._id === station._id && "bg-black/10"} flex items-center justify-between space-x-4 p-2 rounded cursor-pointer hover:bg-gray-200 transition-colors`}
@@ -251,14 +251,14 @@ export default function TravelApp() {
                                     <div className="flex items-center space-x-4" onClick={() => setActiveStation(station)}>
                                         <div className="w-2 h-2 bg-blue-500 rounded-full" />
                                         <div>
-                                            <p className="font-semibold">{station.city}</p>
-                                            <p className="text-sm text-gray-500">{station.name}</p>
+                                            <p className="font-semibold">{station?.city}</p>
+                                            <p className="text-sm text-gray-500">{station?.name}</p>
                                         </div>
                                     </div>
                                     <Button 
                                         variant="ghost" 
                                         size="icon"
-                                        onClick={() => removeStation(station._id!)}
+                                        onClick={() => removeStation(station?._id!)}
                                         className="h-8 w-8 bg-red-500 text-white"
                                     >
                                         <X className="h-4 w-4" />
