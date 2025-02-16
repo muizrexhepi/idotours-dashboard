@@ -44,7 +44,7 @@ type SortDirection = "asc" | "desc";
 const Page = () => {
   const [debts, setDebts] = useState<IDebt[]>([]);
   const [month, setMonth] = useState<string>("");
-  const [year, setYear] = useState<string>("2024");
+  const [year, setYear] = useState<string>("2025");
   const [sortColumn, setSortColumn] = useState<keyof IDebt>("operator");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const { toast } = useToast();
@@ -109,7 +109,7 @@ const Page = () => {
     "november",
     "december",
   ];
-  const years: string[] = ["2024", "2025", "2026", "2027"];
+  const years: string[] = [ "2025", "2026", "2027", "2028"];
 
   return (
     <div className="container mx-auto p-6 space-y-6">
