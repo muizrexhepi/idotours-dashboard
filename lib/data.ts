@@ -45,9 +45,9 @@ export const NAV_LINKS = [
         icon: Calendar,
       },
       {
-        title: "Borxhet",
+        title: "Pagesat",
         href: "/reports/sales",
-        description: "Shihni sa borxh ju kemi.",
+        description: "Shihni pagesat dhe borxhet.",
         icon: DollarSign,
       },
       // {
