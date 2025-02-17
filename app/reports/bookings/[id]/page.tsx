@@ -16,6 +16,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Alert } from '@/components/ui/alert'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
+import { API_URL } from '@/environment'
 
 const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
   const { user } = useUser();
@@ -55,7 +56,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
 
       const response = await axios({
         method: 'post',
-        url: `${process.env.NEXT_PUBLIC_API_URL}/booking/download/pdf/e-ticket/${id}`,
+        url: `${API_URL}/booking/download/pdf/e-ticket/${id}`,
         responseType: 'blob',
         headers: {
           'Accept': 'application/pdf',
@@ -68,7 +69,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
 
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'ticket.pdf');
+      link.setAttribute('download', `ticket-${id}.pdf`);
 
       document.body.appendChild(link);
       link.click();
@@ -101,7 +102,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
         {booking?.test_mode && <Alert variant={"destructive"} className='my-4'>
           Ky rezervim është vetëm një test dhe përdoret ekskluzivisht për qëllime demonstrimi.
         </Alert>}
-        <Button className='mb-2' onClick={() => downloadPdf(params.id)}>Download</Button>
+        <Button className='mb-2' onClick={() => downloadPdf(booking._id)}>Download</Button>
         <Card className="overflow-hidden shadow-lg">
           <CardHeader className="p-6">
             <div className="flex justify-between items-center">
