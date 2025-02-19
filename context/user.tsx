@@ -5,9 +5,13 @@ import { account } from "@/appwrite.config";
 import { useRouter } from "next/navigation";
 import { AppwriteException } from "appwrite";
 import { AppwriteUser } from "@/models/user";
+import { API_URL } from "@/environment";
+import axios from "axios";
+import { Operator } from "@/models/operator";
 
 interface UserContextType {
   user: AppwriteUser | null;
+  getDbUser: any;
   loading: boolean;
   error: string | null;
   logout: () => void;
@@ -58,6 +62,37 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+
+  const getDbUser = async ():Promise<any> => {
+    try {
+      const currentUser = await account.get();
+      const response = await axios.get(API_URL+"/operator/"+currentUser.$id);
+      const data = response.data.data;
+
+      if (!data) {
+        return router.push("/login");
+      }
+
+      if (!currentUser.labels?.includes("operator")) {
+        return router.push("/login");
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof AppwriteException) {
+        setError(error.message);
+
+        if (error.code === 401 || error.message.includes("missing scope")) {
+          router.push("/login");
+        }
+      } else {
+        setError("An unexpected error occurred.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await account.deleteSession("current");
@@ -73,7 +108,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, loading, error, logout }}>
+    <UserContext.Provider value={{ user, loading, error, logout, getDbUser }}>
       {children}
     </UserContext.Provider>
   );
