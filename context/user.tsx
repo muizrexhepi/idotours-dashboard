@@ -7,7 +7,6 @@ import { AppwriteException } from "appwrite";
 import { AppwriteUser } from "@/models/user";
 import { API_URL } from "@/environment";
 import axios from "axios";
-import { Operator } from "@/models/operator";
 
 interface UserContextType {
   user: AppwriteUser | null;

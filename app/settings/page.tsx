@@ -1,22 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/context/user";
-import { Operator, OperatorRoles } from "@/models/operator";
-import axios from "axios";
-import { API_URL } from "@/environment";
+import { Operator } from "@/models/operator";
 
 export default function SettingsPage() {
   const { user, getDbUser } = useUser();
