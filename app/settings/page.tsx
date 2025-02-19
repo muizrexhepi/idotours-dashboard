@@ -96,7 +96,7 @@ export default function SettingsPage() {
             <CardContent className="flex flex-col items-center">
               <div className="relative group">
                 <Avatar className="w-32 h-32 mb-4 border-4 border-background shadow-md">
-                  <AvatarImage src={user?.prefs?.avatar} alt={operator.name} />
+                  {/* <AvatarImage src={user?.prefs?.avatar} alt={operator.name} /> */}
                   <AvatarFallback className="text-3xl bg-primary/10 text-primary">
                     {operator.name?.charAt(0) || "U"}
                   </AvatarFallback>
