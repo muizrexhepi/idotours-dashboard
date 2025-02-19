@@ -71,12 +71,12 @@ export const NAV_LINKS = [
         description: "Shikoni seancat drejtpërdrejt nga punonjësit tuaj.",
         icon: Activity,
       },
-      {
-        title: "Chat support",
-        href: "/live-chat-support",
-        description: "Shikoni mbështetjen tuaj të bisedës live me Go Busly.",
-        icon: MessageCircle,
-      },
+      // {
+      //   title: "Chat support",
+      //   href: "/live-chat-support",
+      //   description: "Shikoni mbështetjen tuaj të bisedës live me Go Busly.",
+      //   icon: MessageCircle,
+      // },
     ],
   },
 ];
