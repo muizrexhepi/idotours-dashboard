@@ -60,6 +60,7 @@ export default function SettingsPage() {
               <div className="mt-4 text-center">
                 <p className="font-medium">SWIFT Code: {operator.company_metadata.bank_details?.swift || "N/A"}</p>
                 <p className="font-medium">IBAN: {operator.company_metadata.bank_details?.iban || "N/A"}</p>
+                <p className="font-medium">BANK NAME: {operator.company_metadata.bank_details?.bank_name || "N/A"}</p>
               </div>
             </CardContent>
           </Card>

@@ -42,5 +42,6 @@ export interface CompanyMetadata {
     bank_details: {
         swift: string;
         iban: string;
+        bank_name?: string;
     }
 }
