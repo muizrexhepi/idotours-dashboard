@@ -3,7 +3,6 @@ import { Agency } from "@/models/agency";
 import axios from "axios";
 import { revalidatePath } from "next/cache";
 
-
 export const createAgency = async (agency: Agency, operator_id: string) => {
     try {
         const res = await axios.post(`${API_URL}/agency/create/${operator_id}`, {agency});
