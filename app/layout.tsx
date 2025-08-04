@@ -1,11 +1,10 @@
+import type React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
-import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { UserProvider } from "../context/user";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { cookies } from "next/headers";
 import SupportChat from "./live-chat-support/page";
@@ -13,26 +12,11 @@ import SupportChat from "./live-chat-support/page";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Busly Dashboard - Manage Your Bus Ticket Bookings",
+  title: "Gobusly Dashboard - Premium Bus Operations Management",
   description:
-    "Busly Dashboard provides a comprehensive solution for managing bus ticket bookings, schedules, and customer data. Streamline your operations and offer a seamless experience for passengers.",
+    "Professional dashboard for bus operators to manage bookings, routes, and analytics with enterprise-grade tools.",
   keywords:
-    "Busly, bus booking, bus ticket management, transport, scheduling, customer service, dashboard",
-  openGraph: {
-    title: "Busly Portal - Manage Your Business Efficiently",
-    description:
-      "Access Busly Portal to streamline business operations and improve productivity with cutting-edge tools and resources.",
-    url: "https://portal.busly.eu",
-    type: "website",
-    images: [
-      {
-        url: "/assets/images/portal-og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Busly Portal Overview",
-      },
-    ],
-  },
+    "Gobusly, bus booking, transport management, operator dashboard, analytics",
 };
 
 export default async function RootLayout({
@@ -42,25 +26,22 @@ export default async function RootLayout({
 }>) {
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar:state")?.value === "true";
+
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <SidebarProvider defaultOpen={defaultOpen}>
-            <UserProvider>
-              <SupportChat />
+    <html lang="en" className="h-full">
+      <body className={`${inter.className} h-full bg-gray-50`}>
+        <SidebarProvider defaultOpen={defaultOpen}>
+          <UserProvider>
+            <div className="flex h-full">
               <AppSidebar />
-              <SidebarTrigger className="m-2" />
-              {children}
-              <Toaster />
-            </UserProvider>
-          </SidebarProvider>
-        </ThemeProvider>
+              <div className="flex-1 flex flex-col min-w-0">
+                <main className="flex-1 overflow-auto">{children}</main>
+              </div>
+            </div>
+            <SupportChat />
+            <Toaster />
+          </UserProvider>
+        </SidebarProvider>
       </body>
     </html>
   );

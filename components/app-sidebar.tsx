@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   Sidebar,
@@ -11,27 +11,32 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { NAV_LINKS } from "@/lib/data"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
-import { ChevronUp, Palette, User2, LayoutDashboard } from "lucide-react"
-import { account } from "@/appwrite.config"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import Image from "next/image"
-import { useTheme } from "next-themes"
-import { useUser } from "@/context/user"
+} from "@/components/ui/sidebar";
+import { NAV_LINKS } from "@/lib/data";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { ChevronUp, Palette, User2, LayoutDashboard } from "lucide-react";
+import { account } from "@/appwrite.config";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { useTheme } from "next-themes";
+import { useUser } from "@/context/user";
 
 export function AppSidebar() {
-  const router = useRouter()
-  const { resolvedTheme, setTheme } = useTheme()
-  const { user } = useUser()
-  const { state } = useSidebar()
+  const router = useRouter();
+  const { resolvedTheme, setTheme } = useTheme();
+  const { user } = useUser();
+  const { state } = useSidebar();
 
   const handleLogout = async () => {
-    await account.deleteSessions()
-    router.push("/login")
-  }
+    await account.deleteSessions();
+    router.push("/login");
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -40,7 +45,9 @@ export function AppSidebar() {
           <Link href={"/"}>
             {state === "expanded" ? (
               <Image
-                src={`/assets/icons/${resolvedTheme === "light" ? "dark-logo.svg" : "logo.svg"}`}
+                src={`/assets/icons/${
+                  resolvedTheme === "light" ? "dark-logo.svg" : "dark-logo.svg"
+                }`}
                 alt="Logo"
                 className="h-7 w-auto"
                 width={180}
@@ -88,7 +95,10 @@ export function AppSidebar() {
                       <ChevronUp className="ml-auto" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent side="right" className="w-[--radix-popper-anchor-width]">
+                  <DropdownMenuContent
+                    side="right"
+                    className="w-[--radix-popper-anchor-width]"
+                  >
                     <DropdownMenuItem onClick={() => setTheme("light")}>
                       <span>Light</span>
                     </DropdownMenuItem>
@@ -115,7 +125,10 @@ export function AppSidebar() {
                   <ChevronUp className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" className="w-[--radix-popper-anchor-width]">
+              <DropdownMenuContent
+                side="top"
+                className="w-[--radix-popper-anchor-width]"
+              >
                 <DropdownMenuItem asChild>
                   <Link href="/settings">
                     <span>Settings</span>
@@ -130,6 +143,5 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
-

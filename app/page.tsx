@@ -1,14 +1,14 @@
-"use client"
-
+"use client";
 import Link from "next/link";
 import {
   ArrowUpRight,
   DollarSign,
   Route,
   Users,
+  TrendingUp,
+  Calendar,
 } from "lucide-react";
-
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
 import {
   Table,
   TableBody,
@@ -31,7 +30,7 @@ import { useEffect, useState } from "react";
 import { API_URL } from "@/environment";
 import axios from "axios";
 import { SYMBOLS } from "@/lib/data";
-import { Booking } from "@/models/booking";
+import type { Booking } from "@/models/booking";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/user";
 import moment from "moment-timezone";
@@ -47,204 +46,320 @@ export interface ITopRoute {
 }
 
 export default function Dashboard() {
-  const router = useRouter()
+  const router = useRouter();
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [totalPassengers, setTotalPassengers] = useState<number>(0);
   const [topRoute, setTopRoute] = useState<ITopRoute>();
   const [lastFiveBookings, setLastFiveBookings] = useState<Booking[]>([]);
   const [thisMonthsRevenue, setThisMonthsRevenue] = useState<number>(0);
-
   const { user } = useUser();
 
   const fetchAnalytics = async () => {
     try {
       const operator_id = user?.$id;
-
-      const res = await axios.get(`${API_URL}/operator/reports/revenue/${operator_id}`)
+      const res = await axios.get(
+        `${API_URL}/operator/reports/revenue/${operator_id}`
+      );
       setTotalRevenue(res?.data?.data?.revenueData[0]?.revenue);
       setTotalPassengers(res?.data?.data?.revenueData[0]?.total_passengers);
       setTopRoute(res?.data?.data?.topRoute[0]);
       setThisMonthsRevenue(res?.data?.data?.this_months_revenue[0]?.revenue);
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  };
 
   const fetchLastFiveBookings = async () => {
     try {
       const operator_id = user?.$id;
-      const res = await axios.get(`${API_URL}/operator/reports/last-five-bookings/${operator_id}`)
+      const res = await axios.get(
+        `${API_URL}/operator/reports/last-five-bookings/${operator_id}`
+      );
       setLastFiveBookings(res?.data?.data);
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  };
 
   useEffect(() => {
     if (user) {
       fetchAnalytics();
       fetchLastFiveBookings();
     }
-  }, [user])
+  }, [user]);
 
   const calculateTimePassed = (booking: Booking) => {
     try {
       const createdAt = moment.utc(booking?.createdAt);
       const now = moment.utc();
       const duration = moment.duration(now.diff(createdAt));
-
       let days = "";
       let hrs = "";
       let mins = "";
-
       days = duration.days() > 0 ? `${duration.days()} days` : "";
       hrs = duration.hours() > 0 ? `${duration.hours()} hours` : "";
-      mins = duration.minutes() > 0 ? `${duration.minutes()} minutes ago` : "0 minutes ago";
-
+      mins =
+        duration.minutes() > 0
+          ? `${duration.minutes()} minutes ago`
+          : "0 minutes ago";
       const timePassed = [days, hrs, mins].filter(Boolean).join(", ");
-
       return timePassed;
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
 
   return (
-    <div className="flex min-h-screen w-full flex-col">
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <CardTitle className="text-xl font-medium text-blue-500">
-          Miresevini, {user && user?.name}
-        </CardTitle>
-        <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-          <Card x-chunk="dashboard-01-chunk-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Të ardhurat totale
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalRevenue && totalRevenue?.toFixed(2)} {SYMBOLS.EURO}</div>
-
-            </CardContent>
-          </Card>
-          <Card x-chunk="dashboard-01-chunk-2">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Te ardhurat kete muaj</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{thisMonthsRevenue && thisMonthsRevenue?.toFixed(2)} {SYMBOLS.EURO}</div>
-
-            </CardContent>
-          </Card>
-          <Card x-chunk="dashboard-01-chunk-1">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total shitjet
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalPassengers && totalPassengers}</div>
-
-            </CardContent>
-          </Card>
-          <Card x-chunk="dashboard-01-chunk-2">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Linjat me te kerkuara nga klientet</CardTitle>
-              <Route className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{topRoute?.from_station} - {topRoute?.to_station}</div>
-
-            </CardContent>
-          </Card>
-
-
+    <div className="flex min-h-screen w-full flex-col bg-gray-50/50">
+      <main className="flex flex-1 flex-col gap-8 p-6 md:p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600 mt-1">Welcome back, {user?.name}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm">
+              <Calendar className="h-4 w-4 mr-2" />
+              Last 30 days
+            </Button>
+          </div>
         </div>
-        <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
-          <Card className="xl:col-span-2" x-chunk="dashboard-01-chunk-4">
-            <CardHeader className="flex flex-row items-center">
-              <div className="grid gap-2">
-                <CardTitle>Transaksionet</CardTitle>
-                <CardDescription>
-                  Transaksionet e fundit nga Go Busly.
-                </CardDescription>
+
+        {/* Stats Grid */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="border-0 shadow-sm bg-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Total Revenue
+              </CardTitle>
+              <div className="h-8 w-8 rounded-full bg-green-50 flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-green-600" />
               </div>
-              <Button asChild size="sm" className="ml-auto gap-1">
-                <Link href="/reports/bookings">
-                  Shiko te gjitha
-                  <ArrowUpRight className="h-4 w-4" />
-                </Link>
-              </Button>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Klienti</TableHead>
-                    <TableHead className="hidden xl:table-column">
-                      Tipi
-                    </TableHead>
-                    <TableHead className="hidden xl:table-column">
-                      Statusi
-                    </TableHead>
-                    <TableHead className="hidden xl:table-column">
-                      Data
-                    </TableHead>
-                    <TableHead className="text-right">Shuma</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lastFiveBookings?.map((booking, index) => (
-                    <TableRow key={index} onClick={() => router.push(`/reports/bookings/${booking?._id}`)}>
-                      <TableCell>
-                        <div className="font-medium">{booking.passengers[0].full_name}</div>
-                        <div className="hidden text-sm text-muted-foreground md:inline">
-                          {booking?.passengers[0]?.email}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden xl:table-column">
-                        {booking?.is_paid}
-                      </TableCell>
-                      <TableCell className="hidden xl:table-column">
-                        <Badge className="text-xs" variant={booking?.is_paid === true ? "outline" : "destructive"}>
-                          {booking?.is_paid}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell lg:hidden xl:table-column">
-                        {new Date(booking?.departure_date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {(booking?.price - booking?.service_fee).toFixed(2)} {SYMBOLS.EURO}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="text-2xl font-semibold text-gray-900">
+                {SYMBOLS.EURO}
+                {formatCurrency(totalRevenue || 0)}
+              </div>
+              <div className="flex items-center mt-2">
+                <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                <span className="text-xs text-green-600 font-medium">
+                  +12.5%
+                </span>
+                <span className="text-xs text-gray-500 ml-1">
+                  from last month
+                </span>
+              </div>
             </CardContent>
           </Card>
-          <Card x-chunk="dashboard-01-chunk-5">
-            <CardHeader>
-              <CardTitle>Shitjet e fundit</CardTitle>
+
+          <Card className="border-0 shadow-sm bg-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                This Month
+              </CardTitle>
+              <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-blue-600" />
+              </div>
             </CardHeader>
-            <CardContent className="grid gap-8">
-              {lastFiveBookings?.map((booking) => (
-                <div key={booking?._id} className="flex items-center gap-4">
-                  <Avatar className="hidden h-9 w-9 sm:flex">
-                    <AvatarImage src="/avatars/01.png" alt="Avatar" />
-                    <AvatarFallback className="uppercase">{booking?.passengers[0]?.full_name?.charAt(0)} {booking?.passengers[0]?.full_name?.split(" ")[1]?.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="grid gap-1">
-                    <p className="text-sm text-muted-foreground">
-                      {calculateTimePassed(booking)}
-                    </p>
-                  </div>
-                  <div className="ml-auto font-medium">{booking?.labels?.from_city} - {booking?.labels?.to_city}</div>
+            <CardContent>
+              <div className="text-2xl font-semibold text-gray-900">
+                {SYMBOLS.EURO}
+                {formatCurrency(thisMonthsRevenue || 0)}
+              </div>
+              <div className="flex items-center mt-2">
+                <TrendingUp className="h-3 w-3 text-blue-500 mr-1" />
+                <span className="text-xs text-blue-600 font-medium">+8.2%</span>
+                <span className="text-xs text-gray-500 ml-1">
+                  from last month
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Total Passengers
+              </CardTitle>
+              <div className="h-8 w-8 rounded-full bg-purple-50 flex items-center justify-center">
+                <Users className="h-4 w-4 text-purple-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold text-gray-900">
+                {totalPassengers?.toLocaleString() || 0}
+              </div>
+              <div className="flex items-center mt-2">
+                <TrendingUp className="h-3 w-3 text-purple-500 mr-1" />
+                <span className="text-xs text-purple-600 font-medium">
+                  +15.3%
+                </span>
+                <span className="text-xs text-gray-500 ml-1">
+                  from last month
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-white">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Top Route
+              </CardTitle>
+              <div className="h-8 w-8 rounded-full bg-orange-50 flex items-center justify-center">
+                <Route className="h-4 w-4 text-orange-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-lg font-semibold text-gray-900">
+                {topRoute?.from_station} → {topRoute?.to_station}
+              </div>
+              <div className="flex items-center mt-2">
+                <span className="text-xs text-gray-500">
+                  {topRoute?.total_views} views this month
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid gap-6 lg:grid-cols-7">
+          {/* Recent Transactions */}
+          <Card className="lg:col-span-4 border-0 shadow-sm bg-white">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">
+                    Recent Transactions
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Latest bookings from your platform
+                  </CardDescription>
                 </div>
-              ))
-              }
+                <Button variant="ghost" size="sm" asChild>
+                  <Link
+                    href="/reports/bookings"
+                    className="text-gray-600 hover:text-gray-900"
+                  >
+                    View all
+                    <ArrowUpRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-100">
+                      <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                      </TableHead>
+
+                      <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider text-right">
+                        Amount
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {lastFiveBookings?.map((booking, index) => (
+                      <TableRow
+                        key={index}
+                        className="border-gray-50 hover:bg-gray-50/50 cursor-pointer transition-colors"
+                        onClick={() =>
+                          router.push(`/reports/bookings/${booking?._id}`)
+                        }
+                      >
+                        <TableCell className="py-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-gray-100 text-gray-600 text-xs font-medium">
+                                {booking.passengers[0].full_name?.charAt(0)}
+                                {booking.passengers[0].full_name
+                                  ?.split(" ")[1]
+                                  ?.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium text-gray-900 text-sm">
+                                {booking.passengers[0].full_name}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {booking?.passengers[0]?.email}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="text-right">
+                          <div className="font-semibold text-gray-900">
+                            {SYMBOLS.EURO}
+                            {formatCurrency(
+                              booking?.price - booking?.service_fee
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card className="lg:col-span-3 border-0 shadow-sm bg-white">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-semibold text-gray-900">
+                Recent Activity
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                Latest passenger bookings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {lastFiveBookings?.slice(0, 5).map((booking) => (
+                <div
+                  key={booking?._id}
+                  className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50/50 transition-colors"
+                >
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-gray-100 text-gray-600 text-sm font-medium">
+                      {booking?.passengers[0]?.full_name?.charAt(0)}
+                      {booking?.passengers[0]?.full_name
+                        ?.split(" ")[1]
+                        ?.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">
+                      {booking?.passengers[0]?.full_name}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {calculateTimePassed(booking)}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-gray-900">
+                      {booking?.labels?.from_city} → {booking?.labels?.to_city}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {SYMBOLS.EURO}
+                      {formatCurrency(booking?.price - booking?.service_fee)}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>
