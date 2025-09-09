@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 // import { useState, useEffect } from 'react'
 // import { useUser } from '@/context/user'
@@ -18,36 +18,34 @@
 //   label: string;
 // }
 
-
-
 export default function CreateEmployee() {
-//   const [drivers, setDrivers] = useState<Driver[]>([])
-//   const [isLoading, setIsLoading] = useState(true)
-//   const { user } = useUser()
+  //   const [drivers, setDrivers] = useState<Driver[]>([])
+  //   const [isLoading, setIsLoading] = useState(true)
+  //   const { user } = useUser()
 
-//   useEffect(() => {
-//     if (user) {
-//       fetchDrivers()
-//     }
-//   }, [user])
+  //   useEffect(() => {
+  //     if (user) {
+  //       fetchDrivers()
+  //     }
+  //   }, [user])
 
-//   const fetchDrivers = async () => {
-//     setIsLoading(true)
-//     try {
-//       const response = await axios.get(`${API_URL}/driver/operator/${user?.$id}`)
-//       const data: Driver[] = response.data.data
-//       setDrivers(data)
-//     } catch (error) {
-//       console.error('Error fetching drivers:', error)
-//       toast({
-//         title: "Error",
-//         description: "Failed to fetch drivers. Please try again.",
-//         variant: "destructive",
-//       })
-//     } finally {
-//       setIsLoading(false)
-//     }
-//   }
+  //   const fetchDrivers = async () => {
+  //     setIsLoading(true)
+  //     try {
+  //       const response = await axios.get(`${API_URL}/driver/operator/${user?._id}`)
+  //       const data: Driver[] = response.data.data
+  //       setDrivers(data)
+  //     } catch (error) {
+  //       console.error('Error fetching drivers:', error)
+  //       toast({
+  //         title: "Error",
+  //         description: "Failed to fetch drivers. Please try again.",
+  //         variant: "destructive",
+  //       })
+  //     } finally {
+  //       setIsLoading(false)
+  //     }
+  //   }
 
   return (
     <div>3</div>
@@ -88,5 +86,5 @@ export default function CreateEmployee() {
     //     )}
     //   </CardContent>
     // </Card>
-  )
+  );
 }

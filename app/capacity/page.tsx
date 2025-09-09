@@ -86,7 +86,7 @@ const BusSchedule = () => {
     setLoadingLines(true);
     try {
       const response: AxiosResponse = await axios.get(
-        `${API_URL}/route/operator/${user?.$id}`
+        `${API_URL}/route/operator/${user?._id}`
       );
       const lineIds = response.data.data
         .map((route: Route) => route._id)
@@ -104,7 +104,7 @@ const BusSchedule = () => {
     if (!date?.from || !date?.to) return;
     setLoadingSchedule(true);
     try {
-      const operator_id = user?.$id;
+      const operator_id = user?._id;
       const response: AxiosResponse = await axios.get(
         `${API_URL}/ticket/capacity-routes?startDate=${date.from.toISOString()}&endDate=${date.to.toISOString()}&line=${selectedLine}&operator_id=${operator_id}`
       );
@@ -245,9 +245,9 @@ const BusSchedule = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-gray-50/50">
-      <main className="flex flex-1 flex-col gap-8 p-6 md:p-8">
-        <Card className="border-0 shadow-sm bg-white">
+    <div className="flex min-h-screen w-full flex-col">
+      <main className="flex flex-1 flex-col gap-8">
+        <Card className="border-0 bg-white">
           <CardHeader className="pb-4">
             <CardTitle className="text-xl font-semibold text-gray-900">
               Lines Capacity
@@ -304,7 +304,7 @@ const BusSchedule = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
-                    className="w-auto p-0 bg-white shadow-lg rounded-lg"
+                    className="w-auto p-0 bg-white rounded-lg"
                     align="start"
                   >
                     <Calendar
@@ -318,10 +318,13 @@ const BusSchedule = () => {
                   </PopoverContent>
                 </Popover>
                 <Select onValueChange={handleLineChange} value={selectedLine}>
-                  <SelectTrigger className="w-[180px] border-gray-300 text-gray-700 hover:bg-gray-50">
-                    <SelectValue placeholder="All lines" />
+                  <SelectTrigger className="w-[180px] border-gray-300 text-gray-700 hover:bg-gray-50 placeholder-black">
+                    <SelectValue
+                      placeholder="All lines"
+                      className="text-black"
+                    />
                   </SelectTrigger>
-                  <SelectContent className="bg-white shadow-lg rounded-lg">
+                  <SelectContent className="bg-white rounded-lg">
                     <SelectItem value="all">All lines</SelectItem>
                     {lines?.map((route: Route) => (
                       <SelectItem key={route._id} value={route._id!}>
@@ -335,7 +338,7 @@ const BusSchedule = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-white">
+        <Card className="border-0 bg-white">
           <CardHeader className="pb-4">
             <CardTitle className="text-xl font-semibold text-gray-900">
               Routes
@@ -515,7 +518,7 @@ const BusSchedule = () => {
                                         Delete Route
                                       </Button>
                                     </AlertDialogTrigger>
-                                    <AlertDialogContent className="bg-white p-6 rounded-lg shadow-lg">
+                                    <AlertDialogContent className="bg-white p-6 rounded-lg">
                                       <AlertDialogHeader>
                                         <AlertDialogTitle className="text-xl font-semibold text-gray-900">
                                           Are you sure?

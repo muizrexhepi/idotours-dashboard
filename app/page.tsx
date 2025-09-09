@@ -56,7 +56,7 @@ export default function Dashboard() {
 
   const fetchAnalytics = async () => {
     try {
-      const operator_id = user?.$id;
+      const operator_id = user?._id;
       const res = await axios.get(
         `${API_URL}/operator/reports/revenue/${operator_id}`
       );
@@ -71,7 +71,7 @@ export default function Dashboard() {
 
   const fetchLastFiveBookings = async () => {
     try {
-      const operator_id = user?.$id;
+      const operator_id = user?._id;
       const res = await axios.get(
         `${API_URL}/operator/reports/last-five-bookings/${operator_id}`
       );
@@ -117,19 +117,13 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-gray-50/50">
-      <main className="flex flex-1 flex-col gap-8 p-6 md:p-8">
+    <div className="flex min-h-screen w-full flex-col">
+      <main className="flex flex-1 flex-col gap-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-semibold text-gray-900">Dashboard</h1>
             <p className="text-gray-600 mt-1">Welcome back, {user?.name}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm">
-              <Calendar className="h-4 w-4 mr-2" />
-              Last 30 days
-            </Button>
           </div>
         </div>
 

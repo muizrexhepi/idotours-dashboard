@@ -56,16 +56,16 @@ export default function SupportChat() {
   }, [messages]);
 
   const setupSocketListeners = () => {
-    if (!user?.$id) return;
+    if (!user?._id) return;
 
-    socket.emit("joinRoom", user.$id);
+    socket.emit("joinRoom", user._id);
 
     socket.on("receiveMessage", (message: Message) => {
       setMessages((prev) => [...prev, message]);
     });
 
     socket.on("typing", (typingInfo: TypingInfo) => {
-      if (typingInfo.sender !== user.$id) {
+      if (typingInfo.sender !== user._id) {
         setIsTyping(typingInfo.isTyping);
         if (typingInfo.isTyping) {
           if (typingTimeoutRef.current) {
@@ -83,7 +83,7 @@ export default function SupportChat() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${API_URL}/operator/messages/${GOBUSLY_SUPPORT_USER_ID}?sender=${user?.$id}`
+        `${API_URL}/operator/messages/${GOBUSLY_SUPPORT_USER_ID}?sender=${user?._id}`
       );
       const data = await response.json();
       setMessages(data.data);
@@ -95,10 +95,10 @@ export default function SupportChat() {
   };
 
   const sendMessage = () => {
-    if (!newMessage.trim() || !user?.$id) return;
+    if (!newMessage.trim() || !user?._id) return;
 
     const message: Partial<Message> = {
-      sender: user.$id,
+      sender: user._id,
       receiver: GOBUSLY_SUPPORT_USER_ID,
       content: newMessage,
       timestamp: new Date().toISOString(),
@@ -110,10 +110,10 @@ export default function SupportChat() {
   };
 
   const handleTyping = () => {
-    if (!user?.$id) return;
+    if (!user?._id) return;
 
     socket.emit("typing", {
-      sender: user.$id,
+      sender: user._id,
       receiver: GOBUSLY_SUPPORT_USER_ID,
       isTyping: true,
     });
@@ -155,10 +155,10 @@ export default function SupportChat() {
                   <div
                     key={index}
                     className={`flex mb-4 ${
-                      msg.sender === user?.$id ? "justify-end" : "justify-start"
+                      msg.sender === user?._id ? "justify-end" : "justify-start"
                     }`}
                   >
-                    {msg.sender !== user?.$id && (
+                    {msg.sender !== user?._id && (
                       <Avatar className="w-8 h-8 mr-2">
                         <AvatarImage src="/support-avatar.png" />
                         <AvatarFallback>GS</AvatarFallback>
@@ -166,7 +166,7 @@ export default function SupportChat() {
                     )}
                     <div
                       className={`max-w-[70%] p-3 rounded-lg ${
-                        msg.sender === user?.$id
+                        msg.sender === user?._id
                           ? "bg-primary text-primary-foreground"
                           : "bg-secondary"
                       }`}

@@ -36,12 +36,12 @@ export default function BookingsPage() {
     try {
       if (user) {
         const result = await getBookingsByOperatorId(
-          user?.$id!,
+          user?._id!,
           page,
           itemsPerPage
         );
         if (result) {
-          const total_count = await getTotalCountByOperatorId(user?.$id);
+          const total_count = await getTotalCountByOperatorId(user?._id);
           setBookings(result);
           setTotalCount(total_count);
           setTotalPages(Math.ceil(total_count / itemsPerPage));

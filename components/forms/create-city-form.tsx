@@ -26,7 +26,7 @@ export default function StationForm() {
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const {user} = useUser();
+  const { user } = useUser();
 
   const form = useForm<z.infer<typeof stationSchema>>({
     resolver: zodResolver(stationSchema),
@@ -47,7 +47,7 @@ export default function StationForm() {
   const onSubmit = async (values: z.infer<typeof stationSchema>) => {
     setIsLoading(true);
     try {
-      const message = await createStation(values, user?.$id!);
+      const message = await createStation(values, user?._id!);
       setSuccess(message);
       console.log({ message });
     } catch (error) {

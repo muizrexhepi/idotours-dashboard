@@ -1,55 +1,67 @@
-'use client'
+"use client";
 
-import { deleteUserSession, getUserSessions, IUserSession } from '@/actions/user'
-import { useUser } from '@/context/user'
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { AlertCircle, Loader2 } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Button } from "@/components/ui/button"
+import {
+  deleteUserSession,
+  getUserSessions,
+  IUserSession,
+} from "@/actions/user";
+import { useUser } from "@/context/user";
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 
 export default function UserSessions() {
-  const { user } = useUser()
-  const [sessions, setSessions] = useState<IUserSession[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { user } = useUser();
+  const [sessions, setSessions] = useState<IUserSession[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const getSessions = async () => {
       if (user) {
         try {
-          setLoading(true)
-          const userSessions = await getUserSessions(user.$id)
-          console.log({sesijat: userSessions.sessions})
-          setSessions(userSessions.sessions)
-          setError(null)
+          setLoading(true);
+          const userSessions = await getUserSessions(user._id);
+          console.log({ sesijat: userSessions.sessions });
+          setSessions(userSessions.sessions);
+          setError(null);
         } catch (err) {
-          setError('Failed to fetch user sessions. Please try again later.')
-          console.error('Error fetching user sessions:', err)
+          setError("Failed to fetch user sessions. Please try again later.");
+          console.error("Error fetching user sessions:", err);
         } finally {
-          setLoading(false)
+          setLoading(false);
         }
       }
-    }
+    };
 
-    getSessions()
-  }, [user])
+    getSessions();
+  }, [user]);
 
   const handleLogout = async (sessionId: string) => {
-    setLoading(true)
-    const success = await deleteUserSession(user?.$id!, sessionId)
+    setLoading(true);
+    const success = await deleteUserSession(user?._id!, sessionId);
     if (success) {
-      setSessions(prevSessions => prevSessions.filter(session => session.$id !== sessionId))
+      setSessions((prevSessions) =>
+        prevSessions.filter((session) => session._id !== sessionId)
+      );
     } else {
-      setError('Failed to logout session. Please try again.')
+      setError("Failed to logout session. Please try again.");
     }
-    setLoading(false)
-  }
+    setLoading(false);
+  };
 
   if (!user) {
-    return <div>Please log in to view your sessions.</div>
+    return <div>Please log in to view your sessions.</div>;
   }
 
   return (
@@ -57,7 +69,9 @@ export default function UserSessions() {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Seancat tuaja të përdoruesve</CardTitle>
-          <CardDescription>Shikoni të gjitha seancat tuaja aktive nëpër pajisje</CardDescription>
+          <CardDescription>
+            Shikoni të gjitha seancat tuaja aktive nëpër pajisje
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
@@ -75,37 +89,72 @@ export default function UserSessions() {
             <ScrollArea className="h-[calc(100vh-200px)]">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {sessions?.map((session) => (
-                  <Card key={session.$id} className="overflow-hidden">
+                  <Card key={session._id} className="overflow-hidden">
                     <CardHeader className="bg-muted">
                       <CardTitle className="text-lg flex justify-between items-center">
                         <span>{session.deviceName}</span>
-                        <Badge variant={session.current === 'true' ? 'default' : 'secondary'}>
-                          {session.current === 'true' ? 'Current' : 'Active'}
+                        <Badge
+                          variant={
+                            session.current === "true" ? "default" : "secondary"
+                          }
+                        >
+                          {session.current === "true" ? "Current" : "Active"}
                         </Badge>
                       </CardTitle>
-                      <CardDescription>{session.osName} {session.osVersion}</CardDescription>
+                      <CardDescription>
+                        {session.osName} {session.osVersion}
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="pt-4">
                       <dl className="grid grid-cols-2 gap-2 text-sm">
                         <SessionDetail label="IP" value={session.ip} />
-                        <SessionDetail label="Shteti" value={session.countryName} />
-                        <SessionDetail label="Shfletuesi" value={`${session.clientEngine} ${session.clientEngineVersion}`} />
-                        <SessionDetail label="Marka e pajisjes" value={session.deviceBrand} />
-                        <SessionDetail label="Emri i pajisjes" value={session.deviceName} />
-                        <SessionDetail label="Emri i klientit" value={session.clientName} />
-                        <SessionDetail label="Tipi i klientit" value={session.clientType} />
-                        <SessionDetail label="Krijuar" value={new Date(session.$createdAt).toLocaleString()} />
-                        <SessionDetail label="Ofruesi" value={session.provider} />
-                        <SessionDetail label="Ofruesi ID" value={session.providerUid} />
+                        <SessionDetail
+                          label="Shteti"
+                          value={session.countryName}
+                        />
+                        <SessionDetail
+                          label="Shfletuesi"
+                          value={`${session.clientEngine} ${session.clientEngineVersion}`}
+                        />
+                        <SessionDetail
+                          label="Marka e pajisjes"
+                          value={session.deviceBrand}
+                        />
+                        <SessionDetail
+                          label="Emri i pajisjes"
+                          value={session.deviceName}
+                        />
+                        <SessionDetail
+                          label="Emri i klientit"
+                          value={session.clientName}
+                        />
+                        <SessionDetail
+                          label="Tipi i klientit"
+                          value={session.clientType}
+                        />
+                        <SessionDetail
+                          label="Krijuar"
+                          value={new Date(session.$createdAt).toLocaleString()}
+                        />
+                        <SessionDetail
+                          label="Ofruesi"
+                          value={session.provider}
+                        />
+                        <SessionDetail
+                          label="Ofruesi ID"
+                          value={session.providerUid}
+                        />
                       </dl>
                       <div className="mt-4">
-                        <Button 
-                          onClick={() => handleLogout(session.$id)} 
-                          variant="destructive" 
-                          size="sm" 
-                          disabled={session.current === 'true' || loading}
+                        <Button
+                          onClick={() => handleLogout(session._id)}
+                          variant="destructive"
+                          size="sm"
+                          disabled={session.current === "true" || loading}
                         >
-                          {session.current === 'true' ? 'Current Session' : 'Logout'}
+                          {session.current === "true"
+                            ? "Current Session"
+                            : "Logout"}
                         </Button>
                       </div>
                     </CardContent>
@@ -117,7 +166,7 @@ export default function UserSessions() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
 
 function SessionDetail({ label, value }: { label: string; value: string }) {
@@ -126,6 +175,5 @@ function SessionDetail({ label, value }: { label: string; value: string }) {
       <dt className="font-medium">{label}:</dt>
       <dd className="truncate">{value}</dd>
     </>
-  )
+  );
 }
-

@@ -74,7 +74,7 @@ const SalesPage = () => {
   const getDebtsByMonth = async () => {
     setLoadingDebts(true);
     try {
-      const operator_id = user?.$id;
+      const operator_id = user?._id;
       const response: AxiosResponse = await axios.get(
         `${API_URL}/operator/reports/debt/owed/${operator_id}?month=${month}&year=${year}`
       );
@@ -94,7 +94,7 @@ const SalesPage = () => {
     setLoadingPayouts(true);
     try {
       const response: AxiosResponse = await axios.get(
-        `${API_URL}/payouts/timeperiod/${user?.$id}?month=${month}&year=${year}`
+        `${API_URL}/payouts/timeperiod/${user?._id}?month=${month}&year=${year}`
       );
       setPayouts(response.data.data);
     } catch (err: any) {
@@ -158,7 +158,7 @@ const SalesPage = () => {
     if (!selectedDebt) return;
     try {
       const response = await axios.post(`${API_URL}/payouts/create`, {
-        operator_id: user?.$id,
+        operator_id: user?._id,
         requested_amount_in_cents: Math.round(selectedDebt.debt * 100),
         notes: notes,
         year: year,

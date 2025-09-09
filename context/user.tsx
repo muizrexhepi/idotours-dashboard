@@ -1,16 +1,16 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { account } from "@/appwrite.config"; 
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
-import { AppwriteException } from "appwrite";
-import { AppwriteUser } from "@/models/user";
-import { API_URL } from "@/environment";
-import axios from "axios";
 
 interface UserContextType {
-  user: AppwriteUser | null;
-  getDbUser: any;
+  user: any | null;
   loading: boolean;
   error: string | null;
   logout: () => void;
@@ -26,67 +26,61 @@ export const useUser = () => {
   return context;
 };
 
+const decodeJWT = (token: string) => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("Error decoding JWT:", error);
+    return null;
+  }
+};
+
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AppwriteUser | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-
+  console.log({ user });
   const getUser = async () => {
     try {
-      const currentUser = await account.get();
-      console.log({ currentUser });
+      const token = localStorage.getItem("authToken");
 
-      if (!currentUser) {
+      if (!token) {
+        setLoading(false);
         return router.push("/login");
       }
 
-      if (!currentUser.labels?.includes("operator")) {
+      // Decode the JWT to get user data
+      const decoded = decodeJWT(token);
+
+      if (!decoded || !decoded.data) {
+        localStorage.removeItem("authToken");
+        setLoading(false);
         return router.push("/login");
       }
 
-      setUser(currentUser);
-    } catch (error) {
-      if (error instanceof AppwriteException) {
-        setError(error.message);
-
-        if (error.code === 401 || error.message.includes("missing scope")) {
-          router.push("/login");
-        }
-      } else {
-        setError("An unexpected error occurred.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  const getDbUser = async ():Promise<any> => {
-    try {
-      const currentUser = await account.get();
-      const response = await axios.get(API_URL+"/operator/"+currentUser.$id);
-      const data = response.data.data;
-
-      if (!data) {
+      // Check if user is an operator
+      if (decoded.data.role !== "operator") {
+        localStorage.removeItem("authToken");
+        setLoading(false);
         return router.push("/login");
       }
 
-      if (!currentUser.labels?.includes("operator")) {
-        return router.push("/login");
-      }
-
-      return data;
-    } catch (error) {
-      if (error instanceof AppwriteException) {
-        setError(error.message);
-
-        if (error.code === 401 || error.message.includes("missing scope")) {
-          router.push("/login");
-        }
-      } else {
-        setError("An unexpected error occurred.");
-      }
+      setUser(decoded.data);
+      setError(null);
+    } catch (error: any) {
+      console.error("Get user error:", error);
+      setError("Failed to authenticate user.");
+      localStorage.removeItem("authToken");
+      router.push("/login");
     } finally {
       setLoading(false);
     }
@@ -94,20 +88,32 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await account.deleteSession("current");
+      localStorage.removeItem("authToken");
       setUser(null);
+      setError(null);
       router.push("/login");
     } catch (error) {
+      console.error("Logout error:", error);
       setError("Logout failed. Please try again.");
     }
   };
+
+  // Listen for the userChange event (dispatched on login)
+  useEffect(() => {
+    const handleUserChange = () => {
+      getUser();
+    };
+
+    window.addEventListener("userChange", handleUserChange);
+    return () => window.removeEventListener("userChange", handleUserChange);
+  }, []);
 
   useEffect(() => {
     getUser();
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, loading, error, logout, getDbUser }}>
+    <UserContext.Provider value={{ user, loading, error, logout }}>
       {children}
     </UserContext.Provider>
   );

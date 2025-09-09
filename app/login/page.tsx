@@ -17,8 +17,6 @@ import {
 } from "@/components/ui/form";
 import { Loader, Eye, EyeOff } from "lucide-react";
 import { FormError } from "@/components/form-error";
-import { account } from "@/appwrite.config";
-import { USER_LABELS } from "@/lib/data";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -38,29 +36,41 @@ const LoginPage = () => {
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
-    console.log(values);
+    setError(undefined);
+
     try {
-      const user = {
-        email: values.email,
-        password: values.password,
-      };
-      await account.createEmailPasswordSession(user.email, user.password);
-      const newUser = await account.get();
-      if (newUser.labels[0] !== USER_LABELS.OPERATOR) {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/operator/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: values.email,
+            password: values.password,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Login failed");
         setIsLoading(false);
-        await account.deleteSessions();
-        return setError("Not authorized");
+        return;
       }
-      console.log({ papafingo: newUser });
-      if (newUser) {
-        window.dispatchEvent(new Event("userChange"));
-        setError("");
-        setIsLoading(false);
-        router.push("/");
-      }
+
+      localStorage.setItem("authToken", data.data);
+
+      window.dispatchEvent(new Event("userChange"));
+
+      setError("");
+      setIsLoading(false);
+      router.push("/");
     } catch (error: any) {
       setError(error.message || "Something went wrong!");
-      console.log(error.response);
+      console.error("Login error:", error);
       setIsLoading(false);
     }
   };

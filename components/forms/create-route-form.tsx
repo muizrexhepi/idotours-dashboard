@@ -34,8 +34,7 @@ export default function RouteForm({ stations }: { stations: Station[] }) {
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const {user} = useUser();
-
+  const { user } = useUser();
 
   const form = useForm<z.infer<typeof routeSchema>>({
     resolver: zodResolver(routeSchema),
@@ -54,26 +53,26 @@ export default function RouteForm({ stations }: { stations: Station[] }) {
         to: "",
       },
       luggages: {
-        free: 0, 
+        free: 0,
         price_for_extra: 0,
         size: "50 x 50 x 50",
       },
       is_active: "true",
       generate_tickets_automatically: "true",
       metadata: {
-        sold: Number(0)
+        sold: Number(0),
       },
-      operator: ""
+      operator: "",
     },
   });
 
   const onSubmit = async (values: any) => {
     setIsLoading(true);
     try {
-      if(user?.$id) {
-      const message = await createRoute(values, user?.$id);
-      setSuccess(message);
-      console.log({ message });
+      if (user?._id) {
+        const message = await createRoute(values, user?._id);
+        setSuccess(message);
+        console.log({ message });
       }
     } catch (error) {
       console.error(error);
@@ -94,7 +93,11 @@ export default function RouteForm({ stations }: { stations: Station[] }) {
               <FormItem>
                 <FormLabel>Route Code</FormLabel>
                 <FormControl>
-                  <Input {...field} disabled={isLoading} placeholder="Route code" />
+                  <Input
+                    {...field}
+                    disabled={isLoading}
+                    placeholder="Route code"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -108,7 +111,11 @@ export default function RouteForm({ stations }: { stations: Station[] }) {
               <FormItem>
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
-                  <Input {...field} disabled={isLoading} placeholder="+123456789" />
+                  <Input
+                    {...field}
+                    disabled={isLoading}
+                    placeholder="+123456789"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -174,12 +181,13 @@ export default function RouteForm({ stations }: { stations: Station[] }) {
                       <SelectValue placeholder="Select station" />
                     </SelectTrigger>
                     <SelectContent>
-                      {
-                          stations?.map((station: Station) => { return (
-                              <SelectItem key={station?._id} value={station?._id!}>{station.name}</SelectItem>
-                            )
-                          })
-                      }
+                      {stations?.map((station: Station) => {
+                        return (
+                          <SelectItem key={station?._id} value={station?._id!}>
+                            {station.name}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </FormControl>
@@ -200,12 +208,13 @@ export default function RouteForm({ stations }: { stations: Station[] }) {
                       <SelectValue placeholder="Select station" />
                     </SelectTrigger>
                     <SelectContent>
-                      {
-                          stations?.map((station: Station) => { return (
-                              <SelectItem key={station?._id} value={station?._id!}>{station.name}</SelectItem>
-                            )
-                          })
-                      }
+                      {stations?.map((station: Station) => {
+                        return (
+                          <SelectItem key={station?._id} value={station?._id!}>
+                            {station.name}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </FormControl>
@@ -221,7 +230,12 @@ export default function RouteForm({ stations }: { stations: Station[] }) {
               <FormItem>
                 <FormLabel>Free Luggage (kg)</FormLabel>
                 <FormControl>
-                  <Input {...field} disabled={isLoading} placeholder="20" type="number" />
+                  <Input
+                    {...field}
+                    disabled={isLoading}
+                    placeholder="20"
+                    type="number"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -254,13 +268,17 @@ export default function RouteForm({ stations }: { stations: Station[] }) {
               <FormItem>
                 <FormLabel>Luggage Size</FormLabel>
                 <FormControl>
-                  <Input {...field} disabled={isLoading} placeholder="50 x 50 x 50" />
+                  <Input
+                    {...field}
+                    disabled={isLoading}
+                    placeholder="50 x 50 x 50"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-   
+
           <FormField
             control={form.control}
             name="is_active"
@@ -282,7 +300,7 @@ export default function RouteForm({ stations }: { stations: Station[] }) {
               </FormItem>
             )}
           />
-   
+
           <FormField
             control={form.control}
             name="generate_tickets_automatically"

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import CityForm from "@/components/forms/create-city-form";
 import StationsTable from "@/components/stations/StationsTable";
@@ -8,27 +8,26 @@ import { Station } from "@/models/station";
 import axios from "axios";
 import { useEffect, useState } from "react";
 
-export default  function CityCreate() {
-  const {user} = useUser();
-  const [stations, setStations] = useState<Station[]>([])
+export default function CityCreate() {
+  const { user } = useUser();
+  const [stations, setStations] = useState<Station[]>([]);
 
   const getAll = async () => {
     try {
       const response = await axios.get(
-        `${API_URL}/station/operator/${user?.$id}?select=name city country address code`
+        `${API_URL}/station/operator/${user?._id}?select=name city country address code`
       );
-      setStations(response.data.data)
-      
+      setStations(response.data.data);
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  };
 
   useEffect(() => {
-    if(user) { 
-      getAll()
+    if (user) {
+      getAll();
     }
-  }, [user])
+  }, [user]);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-20 sm:py-10">
