@@ -14,7 +14,7 @@ export const NAV_LINKS = [
     title: "Kryesore",
     items: [
       {
-        title: "Dashboard",
+        title: "Paneli",
         href: "/",
         icon: LayoutDashboard,
       },

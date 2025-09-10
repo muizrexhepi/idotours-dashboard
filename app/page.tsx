@@ -122,8 +122,8 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-semibold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600 mt-1">Welcome back, {user?.name}</p>
+            <h1 className="text-3xl font-semibold text-gray-900">Paneli</h1>
+            <p className="text-gray-600 mt-1">Mirë se u ktheve, {user?.name}</p>
           </div>
         </div>
 
@@ -132,7 +132,7 @@ export default function Dashboard() {
           <Card className="border-0 shadow-sm bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Total Revenue
+                Të ardhurat totale
               </CardTitle>
               <div className="h-8 w-8 rounded-full bg-green-50 flex items-center justify-center">
                 <DollarSign className="h-4 w-4 text-green-600" />
@@ -149,7 +149,7 @@ export default function Dashboard() {
                   +12.5%
                 </span>
                 <span className="text-xs text-gray-500 ml-1">
-                  from last month
+                  nga muaji i kaluar
                 </span>
               </div>
             </CardContent>
@@ -158,7 +158,7 @@ export default function Dashboard() {
           <Card className="border-0 shadow-sm bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-gray-600">
-                This Month
+                Ky muaj
               </CardTitle>
               <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center">
                 <DollarSign className="h-4 w-4 text-blue-600" />
@@ -173,7 +173,7 @@ export default function Dashboard() {
                 <TrendingUp className="h-3 w-3 text-blue-500 mr-1" />
                 <span className="text-xs text-blue-600 font-medium">+8.2%</span>
                 <span className="text-xs text-gray-500 ml-1">
-                  from last month
+                  nga muaji i kaluar
                 </span>
               </div>
             </CardContent>
@@ -182,7 +182,7 @@ export default function Dashboard() {
           <Card className="border-0 shadow-sm bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Total Passengers
+                Pasagjerë gjithsej
               </CardTitle>
               <div className="h-8 w-8 rounded-full bg-purple-50 flex items-center justify-center">
                 <Users className="h-4 w-4 text-purple-600" />
@@ -198,7 +198,7 @@ export default function Dashboard() {
                   +15.3%
                 </span>
                 <span className="text-xs text-gray-500 ml-1">
-                  from last month
+                  nga muaji i kaluar
                 </span>
               </div>
             </CardContent>
@@ -207,7 +207,7 @@ export default function Dashboard() {
           <Card className="border-0 shadow-sm bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Top Route
+                Rruga më e përdorur
               </CardTitle>
               <div className="h-8 w-8 rounded-full bg-orange-50 flex items-center justify-center">
                 <Route className="h-4 w-4 text-orange-600" />
@@ -219,7 +219,7 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center mt-2">
                 <span className="text-xs text-gray-500">
-                  {topRoute?.total_views} views this month
+                  {topRoute?.total_views} shikime këtë muaj
                 </span>
               </div>
             </CardContent>
@@ -234,10 +234,10 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg font-semibold text-gray-900">
-                    Recent Transactions
+                    Transaksionet e fundit
                   </CardTitle>
                   <CardDescription className="text-gray-600">
-                    Latest bookings from your platform
+                    Rezervimet më të fundit nga platforma juaj
                   </CardDescription>
                 </div>
                 <Button variant="ghost" size="sm" asChild>
@@ -245,7 +245,7 @@ export default function Dashboard() {
                     href="/reports/bookings"
                     className="text-gray-600 hover:text-gray-900"
                   >
-                    View all
+                    Shiko të gjitha
                     <ArrowUpRight className="h-4 w-4 ml-1" />
                   </Link>
                 </Button>
@@ -257,11 +257,11 @@ export default function Dashboard() {
                   <TableHeader>
                     <TableRow className="border-gray-100">
                       <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Customer
+                        Klienti
                       </TableHead>
 
                       <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider text-right">
-                        Amount
+                        Shuma
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -315,10 +315,10 @@ export default function Dashboard() {
           <Card className="lg:col-span-3 border-0 shadow-sm bg-white">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg font-semibold text-gray-900">
-                Recent Activity
+                Aktivitetet e fundit
               </CardTitle>
               <CardDescription className="text-gray-600">
-                Latest passenger bookings
+                Rezervimet më të fundit të pasagjerëve
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import React from "react";
 
 import axios, { type AxiosResponse } from "axios";
@@ -64,8 +64,23 @@ interface IData {
   bookings: Booking[];
 }
 
+// Constants for better maintainability
+const DATE_RANGES = [
+  { key: "today", label: "Sot" },
+  { key: "yesterday", label: "Dje" },
+  { key: "thisWeek", label: "Këtë Javë" },
+  { key: "lastWeek", label: "Javën e Kaluar" },
+  { key: "thisMonth", label: "Këtë Muaj" },
+  { key: "lastMonth", label: "Muajin e Kaluar" },
+] as const;
+
+const LOADING_SKELETON_ROWS = 5;
+
 const BusSchedule = () => {
   const router = useRouter();
+  const { user } = useUser();
+
+  // State management
   const [routes, setRoutes] = useState<IData[]>([]);
   const [selectedLine, setSelectedLine] = useState<string>("");
   const [expandedRoute, setExpandedRoute] = useState<number | null>(null);
@@ -78,139 +93,171 @@ const BusSchedule = () => {
   );
   const [deleteRouteId, setDeleteRouteId] = useState<string | null>(null);
   const [lines, setLines] = useState<Route[]>([]);
-  const { user } = useUser();
   const [loadingSchedule, setLoadingSchedule] = useState(true);
   const [loadingLines, setLoadingLines] = useState(true);
 
-  const fetchLines = async () => {
+  // Memoized values
+  const allLinesValue = useMemo(
+    () => lines.map((route: Route) => route._id).join("-"),
+    [lines]
+  );
+
+  const selectedLineLabel = useMemo(() => {
+    if (!selectedLine) return "Të gjitha linjat";
+    if (selectedLine === allLinesValue) return "Të gjitha linjat";
+    const line = lines.find((route) => route._id === selectedLine);
+    return line?.code || "Të gjitha linjat";
+  }, [selectedLine, allLinesValue, lines]);
+
+  // API calls
+  const fetchLines = useCallback(async () => {
+    if (!user?._id) return;
+
     setLoadingLines(true);
     try {
       const response: AxiosResponse = await axios.get(
-        `${API_URL}/route/operator/${user?._id}`
+        `${API_URL}/route/operator/${user._id}`
       );
-      const lineIds = response.data.data
-        .map((route: Route) => route._id)
-        .join("-");
-      setLines(response.data.data);
+      const fetchedLines = response.data.data;
+      setLines(fetchedLines);
+
+      // Set initial selected line to all lines
+      const lineIds = fetchedLines.map((route: Route) => route._id).join("-");
       setSelectedLine(lineIds);
     } catch (error) {
-      console.log(error);
+      console.error("Error fetching lines:", error);
     } finally {
       setLoadingLines(false);
     }
-  };
+  }, [user?._id]);
 
-  const fetchCapacityRoutes = async () => {
-    if (!date?.from || !date?.to) return;
+  const fetchCapacityRoutes = useCallback(async () => {
+    if (!date?.from || !date?.to || !user?._id || !selectedLine) return;
+
     setLoadingSchedule(true);
     try {
-      const operator_id = user?._id;
       const response: AxiosResponse = await axios.get(
-        `${API_URL}/ticket/capacity-routes?startDate=${date.from.toISOString()}&endDate=${date.to.toISOString()}&line=${selectedLine}&operator_id=${operator_id}`
+        `${API_URL}/ticket/capacity-routes`,
+        {
+          params: {
+            startDate: date.from.toISOString(),
+            endDate: date.to.toISOString(),
+            line: selectedLine,
+            operator_id: user._id,
+          },
+        }
       );
       setRoutes(response.data.data);
     } catch (error) {
-      console.log(error);
+      console.error("Error fetching capacity routes:", error);
     } finally {
       setLoadingSchedule(false);
     }
-  };
+  }, [date?.from, date?.to, user?._id, selectedLine]);
+
+  // Effects
+  useEffect(() => {
+    fetchLines();
+  }, [fetchLines]);
 
   useEffect(() => {
-    if (user) {
-      fetchLines();
-    }
-  }, [user]);
+    fetchCapacityRoutes();
+  }, [fetchCapacityRoutes]);
 
-  useEffect(() => {
-    if (selectedLine && user && date?.from && date?.to) {
-      fetchCapacityRoutes();
-    }
-  }, [selectedLine, date, user]);
+  // Event handlers
+  const handleRouteClick = useCallback((id: number) => {
+    setExpandedRoute((prev) => (prev === id ? null : id));
+  }, []);
 
-  const handleRouteClick = (id: number) => {
-    setExpandedRoute(expandedRoute === id ? null : id);
-  };
-
-  const handleLineChange = (value: string) => {
-    if (value === "all") {
-      const allLineIds = lines.map((route: Route) => route._id).join("-");
-      setSelectedLine(allLineIds);
-    } else {
-      setSelectedLine(value);
-    }
-  };
-
-  const performStateChange = async (
-    currentActivationState: boolean,
-    ticketId: string
-  ) => {
-    const updatedRoutes = routes.map((route) => {
-      if (route.ticket._id === ticketId) {
-        return {
-          ...route,
-          ticket: {
-            ...route.ticket,
-            is_active: !currentActivationState,
-          },
-        };
-      }
-      return route;
-    });
-    setRoutes(updatedRoutes);
-    try {
-      if (currentActivationState) {
-        await deactivateTicket(ticketId);
+  const handleLineChange = useCallback(
+    (value: string) => {
+      if (value === "all") {
+        setSelectedLine(allLinesValue);
       } else {
-        await reactivateTicket(ticketId);
+        setSelectedLine(value);
       }
-    } catch (error) {
-      console.error("Error changing ticket state:", error);
-      setRoutes(routes); // Revert on error
-    }
-  };
+    },
+    [allLinesValue]
+  );
 
-  const handleUpdateSeats = async (ticketId: string) => {
-    const newSeats = updatedSeats[ticketId];
-    try {
-      await axios.post(
-        `${API_URL}/ticket/update/seats/${ticketId}?seats=${newSeats}`,
-        {
-          number_of_tickets: newSeats,
+  const performStateChange = useCallback(
+    async (currentActivationState: boolean, ticketId: string) => {
+      // Optimistic update
+      const updatedRoutes = routes.map((route) => {
+        if (route.ticket._id === ticketId) {
+          return {
+            ...route,
+            ticket: {
+              ...route.ticket,
+              is_active: !currentActivationState,
+            },
+          };
         }
-      );
-      setRoutes((prevRoutes) =>
-        prevRoutes.map((route) =>
-          route.ticket._id === ticketId
-            ? {
-                ...route,
-                ticket: { ...route.ticket, number_of_tickets: newSeats },
-              }
-            : route
-        )
-      );
-    } catch (error) {
-      console.log(error);
-    }
-  };
+        return route;
+      });
+      setRoutes(updatedRoutes);
 
-  const handleSeatChange = (ticketId: string, value: number) => {
-    setUpdatedSeats((prev) => ({ ...prev, [ticketId]: value }));
-  };
-
-  const handleDeleteRoute = async () => {
-    if (deleteRouteId) {
       try {
-        await axios.post(`${API_URL}/ticket/delete/${deleteRouteId}`);
-        setRoutes(routes.filter((route) => route.ticket._id !== deleteRouteId));
-        setDeleteRouteId(null);
+        if (currentActivationState) {
+          await deactivateTicket(ticketId);
+        } else {
+          await reactivateTicket(ticketId);
+        }
       } catch (error) {
-        console.error("Error deleting route:", error);
+        console.error("Error changing ticket state:", error);
+        // Revert on error
+        setRoutes(routes);
       }
-    }
-  };
+    },
+    [routes]
+  );
 
-  const setDateRange = (range: string) => {
+  const handleUpdateSeats = useCallback(
+    async (ticketId: string) => {
+      const newSeats = updatedSeats[ticketId];
+      if (!newSeats) return;
+
+      try {
+        await axios.post(
+          `${API_URL}/ticket/update/seats/${ticketId}`,
+          { number_of_tickets: newSeats },
+          { params: { seats: newSeats } }
+        );
+
+        setRoutes((prevRoutes) =>
+          prevRoutes.map((route) =>
+            route.ticket._id === ticketId
+              ? {
+                  ...route,
+                  ticket: { ...route.ticket, number_of_tickets: newSeats },
+                }
+              : route
+          )
+        );
+      } catch (error) {
+        console.error("Error updating seats:", error);
+      }
+    },
+    [updatedSeats]
+  );
+
+  const handleSeatChange = useCallback((ticketId: string, value: number) => {
+    setUpdatedSeats((prev) => ({ ...prev, [ticketId]: value }));
+  }, []);
+
+  const handleDeleteRoute = useCallback(async () => {
+    if (!deleteRouteId) return;
+
+    try {
+      await axios.post(`${API_URL}/ticket/delete/${deleteRouteId}`);
+      setRoutes(routes.filter((route) => route.ticket._id !== deleteRouteId));
+      setDeleteRouteId(null);
+    } catch (error) {
+      console.error("Error deleting route:", error);
+    }
+  }, [deleteRouteId, routes]);
+
+  const setDateRange = useCallback((range: string) => {
     let start, end;
     switch (range) {
       case "today":
@@ -242,38 +289,166 @@ const BusSchedule = () => {
         end = moment().endOf("day");
     }
     setDate({ from: start.toDate(), to: end.toDate() });
-  };
+  }, []);
+
+  // Render helpers
+  const renderSkeletonRow = () => (
+    <TableRow className="border-gray-100">
+      <TableCell className="py-4">
+        <Skeleton className="h-4 w-6" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-5 w-16" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-20" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-24" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-32" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-12" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-24" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-16" />
+      </TableCell>
+    </TableRow>
+  );
+
+  const renderExpandedRow = (route: IData, idx: number) => (
+    <TableRow className="bg-gray-50 border-gray-100">
+      <TableCell colSpan={8} className="py-4 px-6">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              className="border-gray-300 text-gray-700 hover:bg-gray-100 bg-transparent"
+              onClick={() => console.log("Shiko raportin e shitjeve")}
+            >
+              Raporti i Shitjeve
+            </Button>
+            <Button
+              variant="outline"
+              className={`${
+                route.ticket.is_active
+                  ? "border-red-300 text-red-700 hover:bg-red-50"
+                  : "border-green-300 text-green-700 hover:bg-green-50"
+              }`}
+              onClick={() =>
+                performStateChange(route.ticket.is_active, route.ticket._id)
+              }
+            >
+              {route.ticket.is_active
+                ? "Çaktivizo Biletën"
+                : "Aktivizo Biletën"}
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="border-red-300 text-red-700 hover:bg-red-50 bg-transparent"
+                  onClick={() => setDeleteRouteId(route.ticket._id)}
+                >
+                  Fshi Linjën
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-white p-6 rounded-lg">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-xl font-semibold text-gray-900">
+                    A jeni i sigurt?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-gray-600">
+                    Ky veprim nuk mund të zhbëhet. Kjo do ta fshijë përgjithmonë
+                    këtë linjë dhe do ta largojë të dhënat nga serverët tanë.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">
+                    Anulo
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteRoute}
+                    className="bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Fshi
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <span className="font-medium text-gray-900 text-sm">
+              Linja: {route.ticket.destination.from} →{" "}
+              {route.ticket.destination.to}
+            </span>
+            <div className="flex items-center gap-2">
+              <Label
+                htmlFor={`seats-${route.ticket._id}`}
+                className="text-sm text-gray-700"
+              >
+                Ulëset:
+              </Label>
+              <Input
+                id={`seats-${route.ticket._id}`}
+                className="w-24 border-gray-300 text-gray-800 focus:ring-blue-500 focus:border-blue-500"
+                type="number"
+                min="1"
+                value={
+                  updatedSeats[route.ticket._id] !== undefined
+                    ? updatedSeats[route.ticket._id]
+                    : route.ticket.number_of_tickets
+                }
+                onChange={(e) =>
+                  handleSeatChange(route.ticket._id, Number(e.target.value))
+                }
+              />
+              <Button
+                onClick={() => handleUpdateSeats(route.ticket._id)}
+                className="bg-gray-900 text-white hover:bg-gray-800"
+                disabled={
+                  updatedSeats[route.ticket._id] === undefined ||
+                  updatedSeats[route.ticket._id] ===
+                    route.ticket.number_of_tickets
+                }
+              >
+                Ruaj
+              </Button>
+            </div>
+          </div>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
 
   return (
     <div className="flex min-h-screen w-full flex-col">
       <main className="flex flex-1 flex-col gap-8">
-        <Card className="border-0 bg-white">
-          <CardHeader className="pb-4">
+        <Card className="border-none bg-white">
+          <CardHeader className="p-0 pb-4">
             <CardTitle className="text-xl font-semibold text-gray-900">
-              Lines Capacity
+              Kapaciteti i Linjave
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Manage your routes and capacity
+              Menaxho linjat dhe kapacitetin e autobusëve
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-0">
             <div className="flex flex-col md:flex-row justify-between gap-4">
               <div className="flex flex-wrap gap-2">
-                {[
-                  "today",
-                  "yesterday",
-                  "thisWeek",
-                  "lastWeek",
-                  "thisMonth",
-                  "lastMonth",
-                ].map((range) => (
+                {DATE_RANGES.map((range) => (
                   <Button
-                    key={range}
-                    onClick={() => setDateRange(range)}
+                    key={range.key}
+                    onClick={() => setDateRange(range.key)}
                     variant="outline"
                     className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
-                    {range.charAt(0).toUpperCase() + range.slice(1)}
+                    {range.label}
                   </Button>
                 ))}
               </div>
@@ -292,14 +467,14 @@ const BusSchedule = () => {
                       {date?.from ? (
                         date.to ? (
                           <>
-                            {format(date.from, "LLL dd, y")} -{" "}
-                            {format(date.to, "LLL dd, y")}
+                            {format(date.from, "dd LLL, yyyy")} -{" "}
+                            {format(date.to, "dd LLL, yyyy")}
                           </>
                         ) : (
-                          format(date.from, "LLL dd, y")
+                          format(date.from, "dd LLL, yyyy")
                         )
                       ) : (
-                        <span>Pick a date</span>
+                        <span>Zgjidh një datë</span>
                       )}
                     </Button>
                   </PopoverTrigger>
@@ -317,15 +492,15 @@ const BusSchedule = () => {
                     />
                   </PopoverContent>
                 </Popover>
-                <Select onValueChange={handleLineChange} value={selectedLine}>
-                  <SelectTrigger className="w-[180px] border-gray-300 text-gray-700 hover:bg-gray-50 placeholder-black">
-                    <SelectValue
-                      placeholder="All lines"
-                      className="text-black"
-                    />
+                <Select
+                  onValueChange={handleLineChange}
+                  value={selectedLine === allLinesValue ? "all" : selectedLine}
+                >
+                  <SelectTrigger className="w-[180px] border-gray-300 text-gray-700 hover:bg-gray-50">
+                    <SelectValue>{selectedLineLabel}</SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-white rounded-lg">
-                    <SelectItem value="all">All lines</SelectItem>
+                    <SelectItem value="all">Të gjitha linjat</SelectItem>
                     {lines?.map((route: Route) => (
                       <SelectItem key={route._id} value={route._id!}>
                         {route.code}
@@ -339,14 +514,6 @@ const BusSchedule = () => {
         </Card>
 
         <Card className="border-0 bg-white">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold text-gray-900">
-              Routes
-            </CardTitle>
-            <CardDescription className="text-gray-600">
-              Overview of your bus routes and their capacity.
-            </CardDescription>
-          </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-hidden rounded-lg">
               <Table>
@@ -356,67 +523,44 @@ const BusSchedule = () => {
                       #
                     </TableHead>
                     <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                      Statusi
                     </TableHead>
                     <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Line
+                      Linja
                     </TableHead>
                     <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
+                      Data
                     </TableHead>
                     <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      From / To
+                      Nga / Në
                     </TableHead>
                     <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Seats
+                      Ulëset
                     </TableHead>
                     <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Sales / Passengers
+                      Rezervimet / Pasagjerët
                     </TableHead>
                     <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Departure Time
+                      Koha e Nisjes
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loadingSchedule ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <React.Fragment key={i}>
-                        <TableRow className="border-gray-100">
-                          <TableCell className="py-4">
-                            <Skeleton className="h-4 w-6" />
-                          </TableCell>
-                          <TableCell>
-                            <Skeleton className="h-5 w-16" />
-                          </TableCell>
-                          <TableCell>
-                            <Skeleton className="h-4 w-20" />
-                          </TableCell>
-                          <TableCell>
-                            <Skeleton className="h-4 w-24" />
-                          </TableCell>
-                          <TableCell>
-                            <Skeleton className="h-4 w-32" />
-                          </TableCell>
-                          <TableCell>
-                            <Skeleton className="h-4 w-12" />
-                          </TableCell>
-                          <TableCell>
-                            <Skeleton className="h-4 w-24" />
-                          </TableCell>
-                          <TableCell>
-                            <Skeleton className="h-4 w-16" />
-                          </TableCell>
-                        </TableRow>
-                      </React.Fragment>
-                    ))
+                    Array.from({ length: LOADING_SKELETON_ROWS }).map(
+                      (_, i) => (
+                        <React.Fragment key={i}>
+                          {renderSkeletonRow()}
+                        </React.Fragment>
+                      )
+                    )
                   ) : routes.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={8}
                         className="text-center py-8 text-gray-500"
                       >
-                        No routes found for the selected period.
+                        Nuk u gjetën linja për periudhën e zgjedhur.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -433,15 +577,11 @@ const BusSchedule = () => {
                             <span
                               className={`${
                                 route.ticket.is_active
-                                  ? "bg-green-50 text-green-700"
-                                  : "bg-red-50 text-red-700"
-                              } text-xs font-medium px-2 py-1 rounded-full border ${
-                                route.ticket.is_active
-                                  ? "border-green-200"
-                                  : "border-red-200"
-                              }`}
+                                  ? "bg-green-50 text-green-700 border-green-200"
+                                  : "bg-red-50 text-red-700 border-red-200"
+                              } text-xs font-medium px-2 py-1 rounded-full border`}
                             >
-                              {route.ticket.is_active ? "Active" : "Inactive"}
+                              {route.ticket.is_active ? "Aktive" : "Jo aktive"}
                             </span>
                           </TableCell>
                           <TableCell className="text-sm font-medium text-gray-900">
@@ -474,116 +614,7 @@ const BusSchedule = () => {
                               .format("HH:mm")}
                           </TableCell>
                         </TableRow>
-                        {expandedRoute === idx && (
-                          <TableRow className="bg-gray-50 border-gray-100">
-                            <TableCell colSpan={8} className="py-4 px-6">
-                              <div className="flex flex-col gap-4">
-                                <div className="flex flex-wrap gap-3">
-                                  <Button
-                                    variant="outline"
-                                    className="border-gray-300 text-gray-700 hover:bg-gray-100 bg-transparent"
-                                    onClick={() =>
-                                      console.log("View sales report")
-                                    }
-                                  >
-                                    Sales Report
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    className={`${
-                                      route.ticket.is_active
-                                        ? "border-red-300 text-red-700 hover:bg-red-50"
-                                        : "border-green-300 text-green-700 hover:bg-green-50"
-                                    }`}
-                                    onClick={() =>
-                                      performStateChange(
-                                        route.ticket.is_active,
-                                        route.ticket._id
-                                      )
-                                    }
-                                  >
-                                    {route.ticket.is_active
-                                      ? "Deactivate Ticket"
-                                      : "Activate Ticket"}
-                                  </Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        className="border-red-300 text-red-700 hover:bg-red-50 bg-transparent"
-                                        onClick={() =>
-                                          setDeleteRouteId(route.ticket._id)
-                                        }
-                                      >
-                                        Delete Route
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent className="bg-white p-6 rounded-lg">
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle className="text-xl font-semibold text-gray-900">
-                                          Are you sure?
-                                        </AlertDialogTitle>
-                                        <AlertDialogDescription className="text-gray-600">
-                                          This action cannot be undone. This
-                                          will permanently delete this route and
-                                          remove its data from our servers.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel className="border-gray-300 text-gray-700 hover:bg-gray-50">
-                                          Cancel
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={handleDeleteRoute}
-                                          className="bg-red-600 text-white hover:bg-red-700"
-                                        >
-                                          Delete
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                                <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                                  <span className="font-medium text-gray-900 text-sm">
-                                    Route: {route.ticket.destination.from} →{" "}
-                                    {route.ticket.destination.to}
-                                  </span>
-                                  <div className="flex items-center gap-2">
-                                    <Label
-                                      htmlFor={`seats-${route.ticket._id}`}
-                                      className="text-sm text-gray-700"
-                                    >
-                                      Seats:
-                                    </Label>
-                                    <Input
-                                      id={`seats-${route.ticket._id}`}
-                                      className="w-24 border-gray-300 text-gray-800 focus:ring-blue-500 focus:border-blue-500"
-                                      type="number"
-                                      value={
-                                        updatedSeats[route.ticket._id] ||
-                                        route.ticket.number_of_tickets
-                                      }
-                                      onChange={(e) =>
-                                        handleSeatChange(
-                                          route.ticket._id,
-                                          Number(e.target.value)
-                                        )
-                                      }
-                                    />
-                                    <Button
-                                      onClick={() =>
-                                        handleUpdateSeats(route.ticket._id)
-                                      }
-                                      className="bg-gray-900 text-white hover:bg-gray-800"
-                                    >
-                                      Save
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )}
+                        {expandedRoute === idx && renderExpandedRow(route, idx)}
                       </React.Fragment>
                     ))
                   )}

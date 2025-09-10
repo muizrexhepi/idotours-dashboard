@@ -101,14 +101,14 @@ export default function BookingsPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-gray-50/50">
-      <main className="flex flex-1 flex-col gap-8 p-6 md:p-8">
-        <Card className="border-0 shadow-sm bg-white">
-          <CardHeader className="pb-4">
+      <main className="flex flex-1 flex-col gap-8 ">
+        <Card className="border-0 bg-white">
+          <CardHeader className="p-0 pb-4">
             <CardTitle className="text-xl font-semibold text-gray-900">
-              Bookings (Sales)
+              Rezervimet (Shitjet)
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Manage and view all your bookings in one place.
+              Menaxho dhe shiko të gjitha rezervimet e tua në një vend.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
