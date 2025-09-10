@@ -6,7 +6,6 @@
 // import { API_URL } from '@/environment';
 // import { Agency } from '@/models/agency';
 // import axios from 'axios';
-// import React, { useEffect, useState } from 'react'
 
 const Page = () => {
   // const [agencies, setAgencies] = useState<Agency[]>([])
