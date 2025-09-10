@@ -16,8 +16,6 @@ import { Agency } from "@/models/agency";
 import { deleteAgency } from "@/actions/agency";
 
 
-
-
 const AgenciesTable = ({ agencies }: { agencies: Agency[] }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
