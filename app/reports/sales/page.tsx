@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios, { type AxiosResponse } from "axios";
-import { CalendarIcon, ArrowUpDown } from "lucide-react";
+import { CalendarIcon, ArrowUpDown, RotateCcw, Info, CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 import { API_URL } from "@/environment";
 import { SYMBOLS } from "@/lib/data";
@@ -37,6 +37,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,7 +60,6 @@ interface IPayout {
 
 type SortDirection = "asc" | "desc";
 
-// Constants for better maintainability
 const MONTHS = [
   { value: "january", label: "Janar" },
   { value: "february", label: "Shkurt" },
@@ -76,9 +80,8 @@ const LOADING_SKELETON_ROWS = 3;
 
 const SalesPage = () => {
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user, setUser } = useUser();
 
-  // State management
   const [debts, setDebts] = useState<IDebt[]>([]);
   const [month, setMonth] = useState<string>("");
   const [year, setYear] = useState<string>("2025");
@@ -90,8 +93,13 @@ const SalesPage = () => {
   const [payouts, setPayouts] = useState<IPayout[]>([]);
   const [loadingDebts, setLoadingDebts] = useState(false);
   const [loadingPayouts, setLoadingPayouts] = useState(false);
+  const [isTogglingAutomaticPayouts, setIsTogglingAutomaticPayouts] = useState(false);
+  const [loadingUserData, setLoadingUserData] = useState(false);
 
-  // Memoized values
+  const automaticPayoutsEnabled = useMemo(() => {
+    return user?.company_metadata?.payouts?.automatic_scheduled_payouts || false;
+  }, [user]);
+
   const sortedDebts = useMemo(() => {
     return [...debts].sort((a, b) => {
       if (a[sortColumn] < b[sortColumn])
@@ -116,7 +124,20 @@ const SalesPage = () => {
     }).format(amount);
   }, []);
 
-  // API calls
+  const checkUserPayoutStatus = useCallback(async () => {
+    if (!user?._id) return;
+
+    setLoadingUserData(true);
+    try {
+      const response = await axios.get(`${API_URL}/operator/${user._id}`);
+      setUser(response.data.data);
+    } catch (error: any) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoadingUserData(false);
+    }
+  }, [user?._id, setUser]);
+
   const getDebtsByMonth = useCallback(async () => {
     if (!user?._id || !month || !year) return;
 
@@ -166,7 +187,45 @@ const SalesPage = () => {
     }
   }, [user?._id, month, year, toast]);
 
-  // Effects
+  const toggleAutomaticPayouts = useCallback(async () => {
+    if (!user?._id) return;
+
+    setIsTogglingAutomaticPayouts(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/operator/automatic-payouts/${user._id}`,
+        {
+          automatic_scheduled_payouts: !automaticPayoutsEnabled
+        }
+      );
+
+      setUser(response.data.data);
+
+      toast({
+        title: "Sukses",
+        description: automaticPayoutsEnabled
+          ? "Pagesat automatike u çaktivizuan me sukses"
+          : "Pagesat automatike u aktivizuan me sukses. Do të procesohen çdo muaj në datën 5.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description:
+          error.response?.data?.message ||
+          "Gabim në ndryshimin e cilësimeve të pagesave automatike",
+      });
+    } finally {
+      setIsTogglingAutomaticPayouts(false);
+    }
+  }, [user?._id, automaticPayoutsEnabled, toast, setUser]);
+
+  useEffect(() => {
+    if (user?._id) {
+      checkUserPayoutStatus();
+    }
+  }, [checkUserPayoutStatus]);
+
   useEffect(() => {
     if (user?._id && month && year) {
       getDebtsByMonth();
@@ -174,7 +233,6 @@ const SalesPage = () => {
     }
   }, [getDebtsByMonth, getPayouts]);
 
-  // Event handlers
   const handleSetMonth = useCallback((selectedMonth: string) => {
     setMonth(selectedMonth);
   }, []);
@@ -215,7 +273,7 @@ const SalesPage = () => {
       setIsModalOpen(false);
       setNotes("");
       setSelectedDebt(null);
-      getPayouts(); // Refresh payouts
+      getPayouts();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -238,7 +296,6 @@ const SalesPage = () => {
     setSelectedDebt(null);
   }, []);
 
-  // Render helpers
   const renderSkeletonRow = () => (
     <TableRow className="border-gray-100">
       <TableCell className="py-4">
@@ -271,22 +328,75 @@ const SalesPage = () => {
         );
       }
 
+      if (automaticPayoutsEnabled) {
+        return (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-green-600 text-sm">
+              <CheckCircle className="h-4 w-4" />
+              <span>Pagesat automatike aktive</span>
+            </div>
+            <Button
+              onClick={toggleAutomaticPayouts}
+              disabled={isTogglingAutomaticPayouts}
+              variant="outline"
+              size="sm"
+              className="text-xs"
+            >
+              {isTogglingAutomaticPayouts ? "Duke ndryshuar..." : "Çaktivizo"}
+            </Button>
+          </div>
+        );
+      }
+
       return (
-        <Button
-          onClick={() => handleOpenModal(debt)}
-          className="bg-gray-900 text-white hover:bg-gray-800 transition-colors"
-          size="sm"
-        >
-          Kërko Pagesë
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => handleOpenModal(debt)}
+            className="bg-gray-900 text-white hover:bg-gray-800 transition-colors"
+            size="sm"
+            disabled={automaticPayoutsEnabled}
+          >
+            Kërko Pagesë
+          </Button>
+          <Button
+            onClick={toggleAutomaticPayouts}
+            disabled={isTogglingAutomaticPayouts}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1 text-xs"
+          >
+            <RotateCcw className="h-3 w-3" />
+            {isTogglingAutomaticPayouts ? "Duke aktivizuar..." : "Aktivizo automatike"}
+          </Button>
+        </div>
       );
     },
-    [isPayoutSent, payouts, handleOpenModal]
+    [isPayoutSent, payouts, handleOpenModal, automaticPayoutsEnabled, toggleAutomaticPayouts, isTogglingAutomaticPayouts]
   );
 
   return (
     <div className="flex min-h-screen w-full flex-col">
       <main className="flex flex-1 flex-col gap-8">
+        {/* Automatic Payouts Status Alert */}
+        <Alert className={`border-l-4 ${automaticPayoutsEnabled
+          ? 'border-l-green-500 bg-green-50'
+          : 'border-l-blue-500 bg-blue-50'}`}>
+          {automaticPayoutsEnabled ? (
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          ) : (
+            <Info className="h-4 w-4 text-blue-600" />
+          )}
+          <AlertTitle className={`${automaticPayoutsEnabled ? 'text-green-800' : 'text-blue-800'}`}>
+            {automaticPayoutsEnabled ? 'Pagesat Automatike të Aktivizuara' : 'Pagesat Manuale Aktive'}
+          </AlertTitle>
+
+          <AlertDescription className={`${automaticPayoutsEnabled ? 'text-green-700' : 'text-blue-700'}`}>
+            {automaticPayoutsEnabled
+              ? 'Pagesat tuaja do të procesohen automatikisht çdo muaj në datën 5. Ju nuk keni nevojë të kërkoni pagesa manuale.'
+              : 'Aktualisht keni pagesat manuale. Duhet të kërkoni pagesa manualisht ose të aktivizoni pagesat automatike për të marrë pagesa çdo muaj në datën 5.'}
+          </AlertDescription>
+        </Alert>
+
         <Card className="border-0 shadow-sm bg-white">
           <CardHeader className="p-0 pb-4">
             <CardTitle className="text-xl font-semibold text-gray-900">

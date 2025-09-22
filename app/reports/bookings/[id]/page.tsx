@@ -176,11 +176,10 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                 </p>
               </div>
               <Badge
-                className={`text-sm font-medium px-3 py-1 ${
-                  booking.is_paid
+                className={`text-sm font-medium px-3 py-1 ${booking.is_paid
                     ? "bg-green-50 text-green-700 border-green-200"
                     : "bg-red-50 text-red-700 border-red-200"
-                }`}
+                  }`}
               >
                 {booking.is_paid ? "Paid" : "Unpaid"}
               </Badge>
