@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import apiClient from "@/lib/axios";
 
 export default function CreateLine() {
   const { user } = useUser();
@@ -23,15 +24,8 @@ export default function CreateLine() {
 
   const getAll = async () => {
     try {
-      const operator_id = user?._id;
-
-      // const stationsResponse = await axios.get(
-      //   `${API_URL}/station/operator/${operator_id}?select=name city country address code`
-      // );
-      // setStations(stationsResponse.data?.data);
-
-      const routesResponse = await axios.get(
-        `${API_URL}/route/operator/${user?._id}`
+      const routesResponse = await apiClient.get(
+        `/route/operator/${user?._id}`,
       );
       setRoutes(routesResponse.data?.data);
     } catch (error) {

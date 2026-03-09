@@ -29,13 +29,13 @@ export const NAV_LINKS = [
     title: "Menaxhimi",
     items: [
       {
-        title: "Borxhi",
+        title: "Raportet ditore",
         href: "/reports/sales",
         icon: DollarSign,
       },
       {
-        title: "Rrugët",
-        href: "/routes",
+        title: "Krijo Rezervim",
+        href: "/reports/bookings/new",
         icon: Route,
       },
       {

@@ -23,13 +23,11 @@ import {
 import { ChevronUp, Palette, User2, Circle } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useTheme } from "next-themes";
 import { useUser } from "@/context/user";
 import { usePathname } from "next/navigation";
 import { Badge } from "./ui/badge";
 
 export function AppSidebar() {
-  const { resolvedTheme, setTheme } = useTheme();
   const { user, logout } = useUser();
   const { state } = useSidebar();
   const pathname = usePathname();
@@ -50,23 +48,13 @@ export function AppSidebar() {
           <Link href="/" className="flex items-center">
             {state === "expanded" ? (
               <Image
-                src={`/assets/icons/${
-                  resolvedTheme === "light" ? "dark-logo.svg" : "dark-logo.svg"
-                }`}
+                src={`/logo.png`}
                 alt="Gobusly Logo"
-                className="h-8 w-auto"
+                className="h-12 w-auto"
                 width={180}
                 height={60}
               />
-            ) : (
-              <Image
-                src="/assets/icons/logo-icon.svg"
-                alt="Gobusly"
-                className="size-8 object-contain"
-                width={32}
-                height={32}
-              />
-            )}
+            ) : null}
           </Link>
         </div>
 
@@ -150,49 +138,6 @@ export function AppSidebar() {
             </SidebarGroup>
           ))}
         </div>
-
-        {/* Theme Selector */}
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton
-                      tooltip={
-                        state === "collapsed" ? "Ndryshoni pamjen" : undefined
-                      }
-                      className="w-full"
-                    >
-                      <Palette className="size-4 flex-shrink-0" />
-                      {state === "expanded" && (
-                        <>
-                          <span className="truncate">Pamja</span>
-                          <ChevronUp className="ml-auto size-4 flex-shrink-0" />
-                        </>
-                      )}
-                    </SidebarMenuButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    side={state === "collapsed" ? "right" : "top"}
-                    align="start"
-                    className="w-48"
-                  >
-                    <DropdownMenuItem onClick={() => setTheme("light")}>
-                      <span>E Çelur</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setTheme("dark")}>
-                      <span>E Errët</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setTheme("system")}>
-                      <span>Sistemi</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       {/* User Menu Footer */}

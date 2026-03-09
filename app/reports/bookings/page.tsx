@@ -8,7 +8,9 @@ import {
 } from "@/actions/bookings";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/context/user";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+// Added Plus icon and Link
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -38,7 +40,7 @@ export default function BookingsPage() {
         const result = await getBookingsByOperatorId(
           user?._id!,
           page,
-          itemsPerPage
+          itemsPerPage,
         );
         if (result) {
           const total_count = await getTotalCountByOperatorId(user?._id);
@@ -93,7 +95,7 @@ export default function BookingsPage() {
           }
         >
           {i}
-        </Button>
+        </Button>,
       );
     }
     return buttons;
@@ -103,14 +105,24 @@ export default function BookingsPage() {
     <div className="flex min-h-screen w-full flex-col bg-gray-50/50">
       <main className="flex flex-1 flex-col gap-8 ">
         <Card className="border-0 bg-white">
-          <CardHeader className="p-0 pb-4">
-            <CardTitle className="text-xl font-semibold text-gray-900">
-              Rezervimet (Shitjet)
-            </CardTitle>
-            <CardDescription className="text-gray-600">
-              Menaxho dhe shiko të gjitha rezervimet e tua në një vend.
-            </CardDescription>
+          {/* Updated Header Layout */}
+          <CardHeader className="p-0 pb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-xl font-semibold text-gray-900">
+                Rezervimet (Shitjet)
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                Menaxho dhe shiko të gjitha rezervimet e tua në një vend.
+              </CardDescription>
+            </div>
+
+            <Link href="/reports/bookings/new">
+              <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+                <Plus className="h-4 w-4" /> Rezervim i Ri
+              </Button>
+            </Link>
           </CardHeader>
+
           <CardContent className="p-0">
             <BookingsTable bookings={bookings} isLoading={isLoading} />
             <div className="flex flex-col sm:flex-row justify-between items-center p-6 gap-4 border-t border-gray-100">

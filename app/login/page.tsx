@@ -50,7 +50,7 @@ const LoginPage = () => {
             email: values.email,
             password: values.password,
           }),
-        }
+        },
       );
 
       const data = await response.json();

@@ -23,10 +23,9 @@ import { useUser } from "@/context/user";
 import type { Booking } from "@/models/booking";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import axios from "axios";
 import { Button } from "@/components/ui/button";
-import { API_URL } from "@/environment";
 import { Skeleton } from "@/components/ui/skeleton";
+import apiClient from "@/lib/axios";
 
 const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
   const { user } = useUser();
@@ -46,7 +45,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
       }
     } catch (error) {
       console.log(error);
-      setBooking(null); // Set booking to null on error to show not found
+      setBooking(null);
     } finally {
       setLoading(false);
     }
@@ -64,9 +63,9 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
   const downloadPdf = async (id: string) => {
     try {
       if (typeof window == "undefined") return;
-      const response = await axios({
+      const response = await apiClient({
         method: "post",
-        url: `${API_URL}/booking/download/pdf/e-ticket/${id}`,
+        url: `/booking/download/pdf/e-ticket/${id}`,
         responseType: "blob",
         headers: {
           Accept: "application/pdf",
@@ -76,13 +75,13 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `ticket-${id}.pdf`);
+      link.setAttribute("download", `bileta-${id}.pdf`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Error downloading PDF:", error);
+      console.error("Gabim gjatë shkarkimit të PDF:", error);
     }
   };
 
@@ -119,11 +118,11 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
           <Card className="w-full max-w-md border-0 shadow-sm bg-white">
             <CardContent className="flex flex-col items-center p-6 text-center">
               <h2 className="mt-4 text-2xl font-bold text-gray-900">
-                Booking Not Found
+                Rezervimi nuk u gjet
               </h2>
               <p className="mt-2 text-gray-600">
-                We couldn&apos;t find the booking you&apos;re looking for.
-                Please check the booking ID and try again.
+                Nuk mundëm të gjenim rezervimin që po kërkoni. Ju lutemi
+                kontrolloni ID-në dhe provoni përsëri.
               </p>
             </CardContent>
           </Card>
@@ -134,6 +133,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
 
   const departureDate = moment
     .utc(booking.departure_date)
+    .locale("sq") // Opsionale: vendosni gjuhën shqipe për moment
     .format("dddd, DD-MM-YYYY");
 
   return (
@@ -144,23 +144,23 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
             variant="destructive"
             className="my-4 border-red-200 bg-red-50 text-red-700"
           >
-            <AlertTitle className="text-red-800">Test Booking</AlertTitle>
+            <AlertTitle className="text-red-800">Rezervim Testues</AlertTitle>
             <AlertDescription>
-              This booking is for demonstration purposes only and does not
-              represent a real transaction.
+              Ky rezervim është vetëm për qëllime demonstrimi dhe nuk përfaqëson
+              një transaksion real.
             </AlertDescription>
           </Alert>
         )}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-semibold text-gray-900">
-            Booking Details
+            Detajet e Rezervimit
           </h1>
           <Button
             onClick={() => downloadPdf(booking._id)}
             className="bg-gray-900 text-white hover:bg-gray-800"
           >
             <Download className="h-4 w-4 mr-2" />
-            Download Ticket
+            Shkarko Biletën
           </Button>
         </div>
 
@@ -169,19 +169,20 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
             <div className="flex justify-between items-center">
               <div>
                 <CardTitle className="text-xl font-semibold text-gray-900">
-                  Booking ID: {booking._id}
+                  ID e Rezervimit: {booking._id}
                 </CardTitle>
                 <p className="text-sm text-gray-600 mt-1">
-                  Details for this booking.
+                  Detajet për këtë rezervim.
                 </p>
               </div>
               <Badge
-                className={`text-sm font-medium px-3 py-1 ${booking.is_paid
+                className={`text-sm font-medium px-3 py-1 ${
+                  booking.is_paid
                     ? "bg-green-50 text-green-700 border-green-200"
                     : "bg-red-50 text-red-700 border-red-200"
-                  }`}
+                }`}
               >
-                {booking.is_paid ? "Paid" : "Unpaid"}
+                {booking.is_paid ? "E Paguar" : "Pa Paguar"}
               </Badge>
             </div>
           </CardHeader>
@@ -191,7 +192,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-lg font-semibold text-gray-900">
                     <BusIcon className="mr-2 h-5 w-5 text-gray-600" />
-                    Trip Information
+                    Informacioni i Udhëtimit
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 text-gray-700">
@@ -199,7 +200,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                     <div className="flex flex-col items-center space-y-1">
                       <MapPinIcon className="text-blue-500 h-5 w-5" />
                       <span className="font-semibold text-sm">
-                        Departure: {booking?.labels?.from_city}
+                        Nisja: {booking?.labels?.from_city}
                       </span>
                       <span className="text-xs text-gray-500 text-center">
                         {booking?.destinations?.departure_station_label}
@@ -208,7 +209,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                     <div className="flex flex-col items-center space-y-1">
                       <MapPinIcon className="text-blue-500 h-5 w-5" />
                       <span className="font-semibold text-sm">
-                        Arrival: {booking?.labels?.to_city}
+                        Mbërritja: {booking?.labels?.to_city}
                       </span>
                       <span className="text-xs text-gray-500 text-center">
                         {booking?.destinations?.arrival_station_label}
@@ -231,7 +232,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                       variant="outline"
                       className="bg-gray-100 text-gray-700 border-gray-300"
                     >
-                      Origin: {booking?.platform}
+                      Platforma: {booking?.platform}
                     </Badge>
                   </div>
                 </CardContent>
@@ -241,7 +242,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-lg font-semibold text-gray-900">
                     <UserIcon className="mr-2 h-5 w-5 text-gray-600" />
-                    Passenger Information
+                    Informacioni i Pasagjerëve
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -251,12 +252,12 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                         <CardHeader className="pb-3">
                           <CardTitle className="flex items-center text-base font-semibold text-gray-900">
                             <UserIcon className="mr-2 h-4 w-4 text-gray-500" />
-                            Passenger {index + 1}
+                            Pasagjeri {index + 1}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm text-gray-700">
                           <div className="flex justify-between items-center">
-                            <span className="font-medium">Name:</span>
+                            <span className="font-medium">Emri:</span>
                             <span>{passenger?.full_name}</span>
                           </div>
                           <div className="flex justify-between items-center">
@@ -264,11 +265,11 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                             <span>{passenger?.email}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="font-medium">Phone:</span>
+                            <span className="font-medium">Telefoni:</span>
                             <span>{passenger?.phone}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="font-medium">Price:</span>
+                            <span className="font-medium">Çmimi:</span>
                             <Badge
                               variant="secondary"
                               className="bg-blue-50 text-blue-700 border-blue-200"
@@ -279,7 +280,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                           </div>
                         </CardContent>
                       </Card>
-                    )
+                    ),
                   )}
                 </CardContent>
               </Card>
@@ -290,13 +291,13 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-lg font-semibold text-gray-900">
                     <CreditCardIcon className="mr-2 h-5 w-5 text-gray-600" />
-                    Payment Information
+                    Informacioni i Pagesës
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 text-gray-700">
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-base">
-                      Total Price:
+                      Çmimi Total:
                     </span>
                     <span className="text-2xl font-bold text-gray-900">
                       {SYMBOLS.EURO}
@@ -308,39 +309,21 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                       <Separator className="bg-gray-200" />
                       <div className="space-y-2 text-sm">
                         <div className="font-semibold text-gray-800">
-                          Charge Details:
+                          Detajet e Ngarkesës:
                         </div>
                         <div className="flex justify-between">
-                          <span>Charged Amount:</span>
+                          <span>Shuma e Paguar:</span>
                           <span>
                             {SYMBOLS.EURO}
                             {(booking?.price).toFixed(2)}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Gobusly Service Fee:</span>
-                          <span>
-                            {SYMBOLS.EURO}
-                            {booking?.service_fee?.toFixed(2) || "0.00"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Your Profit:</span>
-                          <span className="font-semibold text-green-600">
-                            {SYMBOLS.EURO}{" "}
-                            {(
-                              booking?.price - (booking?.service_fee || 0)
-                            ).toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Currency:</span>
-                          <span>
-                            {booking?.charge?.currency?.toUpperCase() || "N/A"}
-                          </span>
+                          <span>Valuta:</span>
+                          <span>EUR</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span>Payment Method:</span>
+                          <span>Metoda e Pagesës:</span>
                           <div className="flex items-center space-x-2">
                             <CreditCardIcon className="text-gray-500 h-4 w-4" />
                             <span className="font-medium">
@@ -363,7 +346,7 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-lg font-semibold text-gray-900">
                     <PhoneIcon className="mr-2 h-5 w-5 text-gray-600" />
-                    Contact Information
+                    Informacioni i Kontaktit
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm text-gray-700">
@@ -381,30 +364,23 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
               <Card className="border-0 shadow-sm bg-gray-50">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg font-semibold text-gray-900">
-                    Booking Metadata
+                    Metadata e Rezervimit
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm text-gray-700">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Charge ID:</span>
+                    <span className="text-gray-600">
+                      ID e Pagesës (Charge):
+                    </span>
                     <span className="font-mono text-xs bg-gray-100 p-1 rounded text-gray-800">
                       {booking.charge?.id}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Payment Intent ID:</span>
+                    <span className="text-gray-600">ID e Intentit:</span>
                     <span className="font-mono text-xs bg-gray-100 p-1 rounded text-gray-800">
                       {booking.metadata.payment_intent_id}
                     </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <Link
-                      href={booking.charge?.receipt_url!}
-                      target="_blank"
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      View Receipt
-                    </Link>
                   </div>
                 </CardContent>
               </Card>
@@ -415,4 +391,5 @@ const BookingDetailsPage = ({ params }: { params: { id: string } }) => {
     </div>
   );
 };
+
 export default BookingDetailsPage;
