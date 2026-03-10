@@ -65,16 +65,16 @@ export const NAV_LINKS = [
   //     },
   //   ],
   // },
-  {
-    title: "Sistemi",
-    items: [
-      {
-        title: "Cilësimet",
-        href: "/settings",
-        icon: Settings,
-      },
-    ],
-  },
+  // {
+  //   title: "Sistemi",
+  //   items: [
+  //     {
+  //       title: "Cilësimet",
+  //       href: "/settings",
+  //       icon: Settings,
+  //     },
+  //   ],
+  // },
 ];
 export const SYMBOLS = {
   EURO: "€",

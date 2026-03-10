@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -52,8 +53,7 @@ const LoginPage = () => {
     setError(undefined);
 
     try {
-      // Try operator login first
-      let response = await fetch(
+      const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/operator/login`,
         {
           method: "POST",
@@ -65,60 +65,34 @@ const LoginPage = () => {
         },
       );
 
-      let data = await response.json();
-      let isAgency = false;
+      const data = await response.json();
 
-      // If operator login fails, try agency login
       if (!response.ok) {
-        const agencyResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/agency/login`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: values.email,
-              password: values.password,
-            }),
-          },
-        );
-
-        if (!agencyResponse.ok) {
-          const agencyData = await agencyResponse.json();
-          setError(agencyData.message || "Email ose fjalëkalim i gabuar.");
-          setIsLoading(false);
-          return;
-        }
-
-        data = await agencyResponse.json();
-        isAgency = true;
-      }
-
-      const token = data.data;
-      if (!token) {
-        setError("Ndodhi nje gabim. Provo perseri.");
+        setError(data.message || "Email ose fjalëkalim i gabuar.");
         setIsLoading(false);
         return;
       }
 
-      // Decode JWT to double-check role
+      const token = data.data;
+      if (!token) {
+        setError("Ndodhi një gabim. Provo përsëri.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Dekodimi i JWT për t'u siguruar që përdoruesi është operator
       const decoded = decodeJWT(token);
       const role = decoded?.data?.role;
 
-      if (role === "agency" || isAgency) {
-        // Agency user → store in agency token key and redirect to agency portal
-        localStorage.setItem("agencyAuthToken", token);
-        window.dispatchEvent(new Event("agencyUserChange"));
-        router.push("/agency/dashboard");
-      } else if (role === "operator") {
-        // Operator → store in operator token key and redirect to main dashboard
+      if (role === "operator") {
         localStorage.setItem("authToken", token);
         window.dispatchEvent(new Event("userChange"));
         router.push("/");
       } else {
-        setError("Llogaria juaj nuk ka akses.");
+        setError("Kjo llogari nuk ka qasje si operator.");
       }
     } catch (err: any) {
-      setError(err.message || "Ndodhi nje gabim.");
+      setError(err.message || "Ndodhi një gabim gjatë hyrjes.");
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);
@@ -133,11 +107,11 @@ const LoginPage = () => {
       <div className="absolute top-0 left-0 right-0 p-6 z-10">
         <Link href="https://gobusly.com" className="inline-block">
           <Image
-            src="/assets/icons/dark-logo.svg"
+            src="/logo.png"
             alt="Gobusly Logo"
-            width={120}
-            height={40}
-            className="h-8 w-auto hover:opacity-80 transition-opacity"
+            width={160}
+            height={60}
+            className="h-12 w-auto hover:opacity-80 transition-opacity"
           />
         </Link>
       </div>
@@ -148,10 +122,10 @@ const LoginPage = () => {
           <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-8">
             <div className="text-center mb-8">
               <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-                Sign in to your account
+                Hyrja për Operatorët
               </h1>
               <p className="text-sm text-gray-600">
-                Welcome back! Please enter your details.
+                Mirësevini përsëri! Ju lutem jepni të dhënat tuaja.
               </p>
             </div>
 
@@ -173,7 +147,7 @@ const LoginPage = () => {
                           {...field}
                           disabled={isLoading}
                           type="email"
-                          placeholder="Enter your email"
+                          placeholder="Shkruani email-in tuaj"
                           className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         />
                       </FormControl>
@@ -188,7 +162,7 @@ const LoginPage = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="block text-sm font-medium text-gray-900 mb-2">
-                        Password
+                        Fjalëkalimi
                       </FormLabel>
                       <FormControl>
                         <div className="relative">
@@ -196,7 +170,7 @@ const LoginPage = () => {
                             {...field}
                             disabled={isLoading}
                             type={showPassword ? "text" : "password"}
-                            placeholder="Enter your password"
+                            placeholder="Shkruani fjalëkalimin tuaj"
                             className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                           />
                           <button
@@ -230,18 +204,31 @@ const LoginPage = () => {
                       Duke hyrë...
                     </div>
                   ) : (
-                    "Sign in"
+                    "Hyni"
                   )}
                 </Button>
               </form>
             </Form>
+
+            {/* Seksioni për Agjencitë */}
+            <div className="mt-6 pt-6 border-t border-gray-100 text-center">
+              <p className="text-sm text-gray-600">
+                Jeni agjenci?{" "}
+                <Link
+                  href="/agency/login"
+                  className="text-blue-600 hover:text-blue-500 font-medium transition-colors"
+                >
+                  Hyni këtu
+                </Link>
+              </p>
+            </div>
 
             <div className="text-center mt-4">
               <Link
                 href="https://gobusly.com/help/contact-support"
                 className="text-sm text-blue-600 hover:text-blue-500 font-medium"
               >
-                Contact support
+                Kontaktoni mbështetjen
               </Link>
             </div>
           </div>
@@ -250,7 +237,7 @@ const LoginPage = () => {
 
       <div className="absolute bottom-0 left-0 right-0 p-6 text-center z-10">
         <p className="text-xs text-gray-500">
-          © 2025 Gobusly. All rights reserved.
+          © 2025 IdoTours. Të gjitha të drejtat e rezervuara.
         </p>
       </div>
     </div>

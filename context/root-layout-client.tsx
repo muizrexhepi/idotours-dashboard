@@ -28,7 +28,7 @@ export function RootLayoutClient({ children, defaultSidebarOpen }: Props) {
     <UserProvider>
       <SidebarProvider defaultOpen={defaultSidebarOpen}>
         <DashboardLayout>{children}</DashboardLayout>
-        <SupportChat />
+        {/* <SupportChat /> */}
       </SidebarProvider>
     </UserProvider>
   );

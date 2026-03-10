@@ -78,3 +78,53 @@ export const deleteAgency = async (agency_id: string): Promise<void> => {
     throw error;
   }
 };
+
+export interface IMonthlyDebtReport {
+  year: number;
+  month: number;
+  total_sales: number;
+  booking_count: number;
+  profit: number;
+  debt: number;
+  is_paid?: boolean;
+}
+
+export const getAgencyMonthlyReport = async (
+  agency_id: string,
+): Promise<IMonthlyDebtReport[]> => {
+  try {
+    const res = await apiClient.get(`/agency/${agency_id}/monthly-report`);
+    return res?.data?.data as IMonthlyDebtReport[];
+  } catch (error) {
+    console.error("Monthly Report Error:", error);
+    return [];
+  }
+};
+
+export const payAgencyMonthlyDebt = async (
+  agency_id: string,
+  year: number,
+  month: number,
+): Promise<void> => {
+  try {
+    await apiClient.post(`/agency/${agency_id}/pay-debt`, { year, month });
+  } catch (error: any) {
+    console.error("Pay Debt Error:", error);
+    throw error;
+  }
+};
+
+export const toggleAgencyStatus = async (
+  agency_id: string,
+  is_active: boolean,
+): Promise<Agency | null> => {
+  try {
+    const res = await apiClient.put(`/agency/${agency_id}`, {
+      agency: { is_active },
+    });
+    return res?.data?.data as Agency;
+  } catch (error: any) {
+    console.error("Toggle Status Error:", error);
+    throw error;
+  }
+};

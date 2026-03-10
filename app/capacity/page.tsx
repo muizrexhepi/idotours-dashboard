@@ -310,14 +310,14 @@ const BusSchedule = () => {
       <TableCell colSpan={8} className="py-6 px-8">
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap items-center gap-3">
-            <Button
+            {/* <Button
               variant="outline"
               size="sm"
               className="border-gray-300 text-gray-700 hover:bg-gray-200 bg-white"
               onClick={() => console.log("Shiko raportin e shitjeve")}
             >
               <FileText className="w-4 h-4 mr-2" /> Raporti i Shitjeve
-            </Button>
+            </Button> */}
 
             <Button
               variant="outline"
