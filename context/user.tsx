@@ -35,7 +35,7 @@ const decodeJWT = (token: string) => {
       atob(base64)
         .split("")
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
+        .join(""),
     );
     return JSON.parse(jsonPayload);
   } catch (error) {
@@ -49,7 +49,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  console.log({ user });
+
   const getUser = async () => {
     try {
       const token = localStorage.getItem("authToken");
@@ -59,7 +59,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         return router.push("/login");
       }
 
-      // Decode the JWT to get user data
       const decoded = decodeJWT(token);
 
       if (!decoded || !decoded.data) {
@@ -68,7 +67,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         return router.push("/login");
       }
 
-      // Check if user is an operator
+      // HARD BLOCK: agency users cannot access the operator dashboard
+      if (decoded.data.role === "agency") {
+        localStorage.removeItem("authToken");
+        setLoading(false);
+        return router.push("/agency/dashboard");
+      }
+
+      // Only operators allowed here
       if (decoded.data.role !== "operator") {
         localStorage.removeItem("authToken");
         setLoading(false);
@@ -99,12 +105,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Listen for the userChange event (dispatched on login)
   useEffect(() => {
     const handleUserChange = () => {
       getUser();
     };
-
     window.addEventListener("userChange", handleUserChange);
     return () => window.removeEventListener("userChange", handleUserChange);
   }, []);

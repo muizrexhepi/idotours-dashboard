@@ -1,5 +1,5 @@
 // export const API_URL = "http://localhost:1235";
-export const API_URL = "https://53dc-185-204-59-76.ngrok-free.app";
+export const API_URL = "https://1f80-185-204-59-76.ngrok-free.app";
 export const SUPPORT_URL = "https://www.gobusly.com/help/help/contact-support";
 export const HELP_URL = "https://www.gobusly.com/help";
 

@@ -23,6 +23,11 @@ export const NAV_LINKS = [
         href: "/capacity",
         icon: KanbanIcon,
       },
+      {
+        title: "Agjencitë",
+        href: "/agencies",
+        icon: Users,
+      },
     ],
   },
   {

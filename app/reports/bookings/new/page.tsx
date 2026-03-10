@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@/context/user";
 import { useToast } from "@/components/ui/use-toast";
 import { createManualBooking, type IManualPassenger } from "@/actions/bookings";
-import { getOperatorRoutes } from "@/actions/route";
 import apiClient from "@/lib/axios";
 
 import { format } from "date-fns";
@@ -58,6 +57,7 @@ import {
   Plus,
   Bus,
 } from "lucide-react";
+import { getOperatorRoutes } from "@/actions/route";
 
 // ─── Types ────────────────────────────────────────────────────────
 interface ITicketOption {
@@ -71,9 +71,10 @@ interface ITicketOption {
     destination?: { from: string; to: string };
   };
   destination?: { from: string; to: string };
-  stations?: {
-    departure: { _id: string; name: string };
-    arrival: { _id: string; name: string };
+  // Backend populates stops.from / stops.to
+  stops?: {
+    from?: { _id: string; name: string };
+    to?: { _id: string; name: string };
   }[];
   price?: number;
 }
@@ -107,6 +108,7 @@ export default function CreateManualBookingPage() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Step 1 — ticket search
   const [routeSearch, setRouteSearch] = useState("");
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<IRouteOption | null>(null);
@@ -161,11 +163,17 @@ export default function CreateManualBookingPage() {
     setSelectedTicket(null);
     setTickets([]);
     try {
-      const dateStr = format(departureDate, "yyyy-MM-dd");
-      const res = await apiClient.get(`/ticket/route/${selectedRoute._id}`, {
-        params: { date: dateStr },
-      });
-      setTickets(res?.data?.data ?? []);
+      // Backend expects DD-MM-YYYY and route_number = route _id
+      const dateStr = format(departureDate, "dd-MM-yyyy");
+      const res = await apiClient.get(
+        `/ticket/by-route-date/${selectedRoute._id}`,
+        {
+          params: { date: dateStr },
+        },
+      );
+      // Backend returns a single ticket object, wrap in array for consistent UI
+      const ticket = res?.data?.data;
+      setTickets(ticket ? [ticket] : []);
     } catch {
       setTickets([]);
     } finally {
@@ -213,8 +221,8 @@ export default function CreateManualBookingPage() {
     if (!selectedTicket || !departureDate || !user?._id) return;
     setIsSubmitting(true);
 
-    const depStation = selectedTicket.stations?.[0]?.departure;
-    const arrStation = selectedTicket.stations?.[0]?.arrival;
+    const depStation = selectedTicket.stops?.[0]?.from;
+    const arrStation = selectedTicket.stops?.[0]?.to;
     const fromCity =
       selectedTicket.route_number?.destination?.from ??
       selectedTicket.destination?.from ??
@@ -469,8 +477,8 @@ export default function CreateManualBookingPage() {
                 ) : (
                   tickets.map((ticket) => {
                     const isSelected = selectedTicket?._id === ticket._id;
-                    const depStation = ticket.stations?.[0]?.departure?.name;
-                    const arrStation = ticket.stations?.[0]?.arrival?.name;
+                    const depStation = ticket.stops?.[0]?.from?.name;
+                    const arrStation = ticket.stops?.[0]?.to?.name;
                     const from =
                       ticket.route_number?.destination?.from ??
                       ticket.destination?.from;
