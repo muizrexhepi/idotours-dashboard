@@ -7,6 +7,7 @@ import {
   DollarSign,
   Settings,
   KanbanIcon,
+  FileText,
 } from "lucide-react";
 
 export const NAV_LINKS = [
@@ -47,6 +48,11 @@ export const NAV_LINKS = [
         title: "Rezervimet",
         href: "/reports/bookings",
         icon: Users,
+      },
+      {
+        title: "Dokumentet",
+        href: "/documents",
+        icon: FileText,
       },
     ],
   },

@@ -5,6 +5,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { cookies } from "next/headers";
 import { RootLayoutClient } from "@/context/root-layout-client";
+import { ConvexClientProvider } from "@/providers/convex-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -33,9 +34,11 @@ export default async function RootLayout({
           - /login        → renders children directly (no UserProvider guard)
           - everything else → wraps in UserProvider + SidebarProvider + DashboardLayout
         */}
-        <RootLayoutClient defaultSidebarOpen={defaultOpen}>
-          {children}
-        </RootLayoutClient>
+        <ConvexClientProvider>
+          <RootLayoutClient defaultSidebarOpen={defaultOpen}>
+            {children}
+          </RootLayoutClient>
+        </ConvexClientProvider>
         <Toaster />
       </body>
     </html>
