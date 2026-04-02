@@ -138,7 +138,9 @@ export default function CreateManualBookingPage() {
     if (!user?._id) return;
     setLoadingRoutes(true);
     getOperatorRoutes(user._id)
-      .then((data) => setAllRoutes(data ?? []))
+      .then((data) =>
+        setAllRoutes((data ?? []).filter((r) => !!r._id) as IRouteOption[]),
+      )
       .catch(() => setAllRoutes([]))
       .finally(() => setLoadingRoutes(false));
   }, [user?._id]);

@@ -1342,7 +1342,9 @@ export default function DocumentsPage() {
     operatorId ? { operator_id: operatorId } : "skip",
   );
 
-  const alertCount = (docs: typeof driverDocs) =>
+  const alertCount = (
+    docs: Array<{ valid_until: string; alarm_days: number }> | undefined,
+  ) =>
     (docs ?? []).filter(
       (d) =>
         differenceInDays(parseISO(d.valid_until), new Date()) <= d.alarm_days,

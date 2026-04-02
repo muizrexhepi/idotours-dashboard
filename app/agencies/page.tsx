@@ -441,7 +441,7 @@ export default function AgencyPage() {
     setPayingRow(key);
     try {
       await payAgencyMonthlyDebt(agency._id, row.year, row.month);
-      setPaidRows((prev) => new Set([...prev, key]));
+      setPaidRows((prev) => new Set(Array.from(prev).concat(key)));
       toast({
         title: "Sukses",
         description: `Borxhi për ${MONTH_NAMES[row.month]} ${row.year} u shlye.`,
@@ -772,7 +772,7 @@ export default function AgencyPage() {
                     <TableBody>
                       {debtReport.map((row) => {
                         const key = `${row.year}-${row.month}`;
-                        const isPaid = row.is_settled;
+                        const isPaid = paidRows.has(key);
                         const isPaying = payingRow === key;
                         return (
                           <TableRow

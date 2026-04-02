@@ -10,7 +10,6 @@ export interface IAgencyPassenger {
 }
 
 export interface IAgencyBookingPayload {
-  ticket_id: string;
   passengers: IAgencyPassenger[];
   total_price: number;
   stop?: {
