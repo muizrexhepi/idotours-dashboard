@@ -45,7 +45,7 @@ export default function CreateRoutesPage() {
 
   const [allStations, setAllStations] = useState<Station[]>([]);
   const [routes, setRoutes] = useState<Route[]>([]);
-  
+
   const [selectedFromStation, setSelectedFromStation] = useState<Station | null>(null);
   const [selectedToStation, setSelectedToStation] = useState<Station | null>(null);
   const [selectedRouteNumber, setSelectedRouteNumber] = useState("");
@@ -185,6 +185,7 @@ export default function CreateRoutesPage() {
   const handleToggleStatus = async (route: Route) => {
     try {
       const isBookable = (route?.metadata as any)?.bookable !== false;
+      console.log("here is the bookable value", isBookable);
       const endpoint = isBookable
         ? `/route/disable/${route._id}`
         : `/route/enable/${route._id}`;
@@ -484,11 +485,10 @@ export default function CreateRoutesPage() {
                           <td className="py-4 px-6 text-center">
                             <Badge
                               variant="outline"
-                              className={`italic text-[10px] px-2 py-0.5 ${
-                                isBookable
+                              className={`italic text-[10px] px-2 py-0.5 ${isBookable
                                   ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                   : "bg-rose-50 text-rose-700 border-rose-200"
-                              }`}
+                                }`}
                             >
                               {isBookable ? "Sync: Aktiv" : "Sync: Paaktivizuar"}
                             </Badge>
@@ -498,11 +498,10 @@ export default function CreateRoutesPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className={`h-8 w-8 rounded-lg ${
-                                  isBookable
+                                className={`h-8 w-8 rounded-lg ${isBookable
                                     ? "text-gray-400 hover:text-amber-600 hover:bg-amber-50"
                                     : "text-amber-600 hover:text-amber-700 bg-amber-50"
-                                }`}
+                                  }`}
                                 onClick={() => handleToggleStatus(route)}
                                 title={isBookable ? "Çaktivizo Shitjet" : "Aktivizo Shitjet"}
                               >
