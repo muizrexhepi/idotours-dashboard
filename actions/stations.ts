@@ -27,7 +27,9 @@ export async function deleteStation (stationId:string) {
     try {
         const res = await axios.post(`${API_URL}/station/delete/${stationId}`)
         console.log({zi:res?.data?.data})
-        revalidatePath('lines/cities/create')
+        if (typeof window === "undefined") {
+            revalidatePath('lines/cities/create')
+        }
         return res?.data?.message
     } catch (error) {
         console.log(error)
@@ -51,7 +53,9 @@ export async function createStation(station: Station, operatorId: string) {
             payload
         );
 
-        revalidatePath('lines/cities/create'); 
+        if (typeof window === "undefined") {
+            revalidatePath('lines/cities/create'); 
+        }
 
         return res?.data?.message; 
     } catch (error) {

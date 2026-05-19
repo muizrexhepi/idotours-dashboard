@@ -72,6 +72,8 @@ import {
   Loader2,
   AlertCircle,
   X,
+  ArrowLeft,
+  Pencil,
 } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────
@@ -227,25 +229,25 @@ function ExpirySummary({
   );
 }
 
-// ════════════════════════════════════════════════════════════════
-// TAB 1 — DRIVER DOCUMENTS
-// ════════════════════════════════════════════════════════════════
 function DriverDocsTab({ operatorId }: { operatorId: string }) {
   const { toast } = useToast();
   const docs = useQuery(api.documents.getDriverDocuments, {
     operator_id: operatorId,
   });
   const createDoc = useMutation(api.documents.createDriverDocument);
+  const updateDoc = useMutation(api.documents.updateDriverDocument);
   const deleteDoc = useMutation(api.documents.deleteDriverDocument);
   const { uploadFile, uploading } = useFileUpload();
 
   const [search, setSearch] = useState("");
+  const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [delTarget, setDelTarget] = useState<Id<"driver_documents"> | null>(
-    null,
-  );
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
+  const [delTarget, setDelTarget] = useState<Id<"driver_documents"> | null>(null);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const editFileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     driver_name: "",
@@ -254,12 +256,32 @@ function DriverDocsTab({ operatorId }: { operatorId: string }) {
     alarm_days: 30,
     notes: "",
   });
+  const [editForm, setEditForm] = useState({
+    driver_name: "",
+    document_type: "",
+    valid_until: "",
+    alarm_days: 30,
+    notes: "",
+  });
+  const [customType, setCustomType] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const filtered = (docs ?? []).filter(
-    (d) =>
-      d.driver_name.toLowerCase().includes(search.toLowerCase()) ||
-      d.document_type.toLowerCase().includes(search.toLowerCase()),
+  const grouped = (docs ?? []).reduce((acc, doc) => {
+    const name = doc.driver_name;
+    if (!acc[name]) {
+      acc[name] = { name, docs: [] };
+    }
+    acc[name]?.docs?.push(doc);
+    return acc;
+  }, {} as Record<string, { name: string; docs: typeof docs }>);
+
+  const driverList = Object.values(grouped).filter((d) =>
+    d.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const driverDocs = selectedDriver ? grouped[selectedDriver]?.docs ?? [] : [];
+  const filteredDocs = driverDocs.filter((d) =>
+    d.document_type.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleSubmit = async () => {
@@ -271,6 +293,15 @@ function DriverDocsTab({ operatorId }: { operatorId: string }) {
       });
       return;
     }
+    const finalDocType = form.document_type === "Tjetër" ? customType : form.document_type;
+    if (!finalDocType) {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description: "Plotëso emrin e dokumentit të personalizuar.",
+      });
+      return;
+    }
     setIsSubmitting(true);
     try {
       let file_storage_id: Id<"_storage"> | undefined;
@@ -278,7 +309,15 @@ function DriverDocsTab({ operatorId }: { operatorId: string }) {
         const id = await uploadFile(selectedFile);
         if (id) file_storage_id = id;
       }
-      await createDoc({ operator_id: operatorId, ...form, file_storage_id });
+      await createDoc({
+        operator_id: operatorId,
+        driver_name: form.driver_name,
+        document_type: finalDocType,
+        valid_until: form.valid_until,
+        alarm_days: form.alarm_days,
+        notes: form.notes,
+        file_storage_id,
+      });
       toast({ title: "Sukses", description: "Dokumenti u regjistrua." });
       setSheetOpen(false);
       setForm({
@@ -288,6 +327,7 @@ function DriverDocsTab({ operatorId }: { operatorId: string }) {
         alarm_days: 30,
         notes: "",
       });
+      setCustomType("");
       setSelectedFile(null);
     } catch {
       toast({
@@ -300,6 +340,74 @@ function DriverDocsTab({ operatorId }: { operatorId: string }) {
     }
   };
 
+  const handleEditSubmit = async () => {
+    if (!editForm.driver_name || !editForm.document_type || !editForm.valid_until) {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description: "Plotëso fushat e detyrueshme.",
+      });
+      return;
+    }
+    const finalDocType = editForm.document_type === "Tjetër" ? customType : editForm.document_type;
+    if (!finalDocType) {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description: "Plotëso emrin e dokumentit të personalizuar.",
+      });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      let file_storage_id: Id<"_storage"> | undefined;
+      if (selectedFile) {
+        const id = await uploadFile(selectedFile);
+        if (id) file_storage_id = id;
+      }
+      await updateDoc({
+        id: editTarget._id,
+        driver_name: editForm.driver_name,
+        document_type: finalDocType,
+        valid_until: editForm.valid_until,
+        alarm_days: editForm.alarm_days,
+        notes: editForm.notes,
+        file_storage_id,
+      });
+      toast({ title: "Sukses", description: "Dokumenti u përditësua." });
+      setEditSheetOpen(false);
+      setEditTarget(null);
+      setCustomType("");
+      setSelectedFile(null);
+      if (selectedDriver && selectedDriver !== editForm.driver_name) {
+        setSelectedDriver(editForm.driver_name);
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description: "Ndodhi një gabim.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenEdit = (doc: any) => {
+    const isCustom = !DRIVER_DOC_TYPES.includes(doc.document_type);
+    setEditTarget(doc);
+    setEditForm({
+      driver_name: doc.driver_name,
+      document_type: isCustom ? "Tjetër" : doc.document_type,
+      valid_until: doc.valid_until,
+      alarm_days: doc.alarm_days,
+      notes: doc.notes || "",
+    });
+    setCustomType(isCustom ? doc.document_type : "");
+    setSelectedFile(null);
+    setEditSheetOpen(true);
+  };
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -308,14 +416,25 @@ function DriverDocsTab({ operatorId }: { operatorId: string }) {
           <div className="relative w-56">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Kerko..."
+              placeholder={selectedDriver ? "Kërko dokument..." : "Kërko shofer..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9 border-gray-300 text-sm"
             />
           </div>
           <Button
-            onClick={() => setSheetOpen(true)}
+            onClick={() => {
+              setForm({
+                driver_name: selectedDriver || "",
+                document_type: "",
+                valid_until: "",
+                alarm_days: 30,
+                notes: "",
+              });
+              setCustomType("");
+              setSelectedFile(null);
+              setSheetOpen(true);
+            }}
             className="bg-gray-900 text-white hover:bg-gray-800 gap-1.5 h-9"
           >
             <Plus className="h-4 w-4" /> Regjistro
@@ -323,92 +442,202 @@ function DriverDocsTab({ operatorId }: { operatorId: string }) {
         </div>
       </div>
 
-      <Card className="border-gray-200 shadow-sm overflow-hidden">
-        <CardContent className="p-0">
-          {docs === undefined ? (
-            <div className="p-5 space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-11 w-full rounded-lg" />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-14 gap-3">
-              <FileText className="h-10 w-10 text-gray-200" />
-              <p className="text-sm font-medium text-gray-500">
-                {search
-                  ? "Nuk u gjet asnjë dokument."
-                  : "Nuk ka dokumente të regjistruara."}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <DocTableHead cols={["Shoferi", "Tipi"]} />
-                <TableBody>
-                  {filtered.map((doc) => (
-                    <TableRow
-                      key={doc._id}
-                      className="border-gray-100 hover:bg-gray-50/50"
-                    >
-                      <TableCell className="text-sm font-medium text-gray-900 py-3">
-                        {doc.driver_name}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        <Badge
-                          variant="outline"
-                          className="border-gray-200 text-gray-600 text-xs"
-                        >
-                          {doc.document_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <ExpiryBadge
-                          validUntil={doc.valid_until}
-                          alarmDays={doc.alarm_days}
-                        />
-                      </TableCell>
-                      <TableCell className="text-center text-xs text-gray-500">
-                        {doc.alarm_days}d
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {doc.file_url ? (
-                          <a
-                            href={doc.file_url}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-blue-500 hover:text-blue-700"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                          </a>
-                        ) : (
-                          <span className="text-xs text-gray-300">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-gray-400 hover:text-red-600"
-                          onClick={() => setDelTarget(doc._id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {docs === undefined ? (
+        <div className="p-5 space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-11 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : !selectedDriver ? (
+        driverList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-14 gap-3 bg-white rounded-xl border border-gray-200">
+            <Users className="h-10 w-10 text-gray-200" />
+            <p className="text-sm font-medium text-gray-500">
+              {search ? "Nuk u gjet asnjë shofer." : "Nuk ka shoferë të regjistruar."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {driverList.map((driver) => {
+              const driverExpired = driver?.docs?.filter(
+                (d: any) => differenceInDays(parseISO(d.valid_until), new Date()) < 0
+              ).length;
+              const driverWarning = driver?.docs?.filter((d: any) => {
+                const days = differenceInDays(parseISO(d.valid_until), new Date());
+                return days >= 0 && days <= d.alarm_days;
+              }).length;
 
-      {/* Create sheet */}
+              return (
+                <Card
+                  key={driver.name}
+                  className="border-gray-200 shadow-sm hover:shadow-md transition duration-200 cursor-pointer"
+                  onClick={() => {
+                    setSelectedDriver(driver.name);
+                    setSearch("");
+                  }}
+                >
+                  <CardContent className="p-5 flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-semibold text-sm">
+                        {driver.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate">{driver.name}</h3>
+                        <p className="text-xs text-gray-500">{driver.docs.length} dokumente</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {driverExpired > 0 ? (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+                          <AlertTriangle className="h-3 w-3" /> {driverExpired} skaduar
+                        </span>
+                      ) : null}
+                      {driverWarning > 0 ? (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                          <Clock className="h-3 w-3" /> {driverWarning} paralajmërim
+                        </span>
+                      ) : null}
+                      {driverExpired === 0 && driverWarning === 0 ? (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+                          <CheckCircle2 className="h-3 w-3" /> Në rregull
+                        </span>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setSelectedDriver(null);
+                  setSearch("");
+                }}
+                className="h-8 w-8 text-gray-500 hover:text-gray-950"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h2 className="font-bold text-gray-900 text-lg">{selectedDriver}</h2>
+                <p className="text-xs text-gray-500">Dokumentet e shoferit</p>
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                setForm({
+                  driver_name: selectedDriver,
+                  document_type: "",
+                  valid_until: "",
+                  alarm_days: 30,
+                  notes: "",
+                });
+                setCustomType("");
+                setSelectedFile(null);
+                setSheetOpen(true);
+              }}
+              size="sm"
+              className="bg-gray-900 text-white hover:bg-gray-800 gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5" /> Shto Dokument
+            </Button>
+          </div>
+
+          <Card className="border-gray-200 shadow-sm overflow-hidden">
+            <CardContent className="p-0">
+              {filteredDocs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-14 gap-3 bg-white">
+                  <FileText className="h-10 w-10 text-gray-200" />
+                  <p className="text-sm font-medium text-gray-500">
+                    {search ? "Nuk u gjet asnjë dokument." : "Nuk ka dokumente për këtë shofer."}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <DocTableHead cols={["Tipi", "Shënime"]} />
+                    <TableBody>
+                      {filteredDocs.map((doc) => (
+                        <TableRow
+                          key={doc._id}
+                          className="border-gray-100 hover:bg-gray-50/50"
+                        >
+                          <TableCell className="text-sm font-semibold text-gray-900 py-3">
+                            <Badge
+                              variant="outline"
+                              className="border-gray-200 bg-gray-50 text-gray-750 text-xs"
+                            >
+                              {doc.document_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-500 max-w-[200px] truncate">
+                            {doc.notes || "—"}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <ExpiryBadge
+                              validUntil={doc.valid_until}
+                              alarmDays={doc.alarm_days}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center text-xs text-gray-500">
+                            {doc.alarm_days}d
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {doc.file_url ? (
+                              <a
+                                href={doc.file_url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-blue-500 hover:text-blue-700"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </Button>
+                              </a>
+                            ) : (
+                              <span className="text-xs text-gray-300">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-gray-400 hover:text-gray-900"
+                                onClick={() => handleOpenEdit(doc)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-gray-400 hover:text-red-600"
+                                onClick={() => setDelTarget(doc._id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-white">
           <SheetHeader className="pb-4">
@@ -433,15 +662,16 @@ function DriverDocsTab({ operatorId }: { operatorId: string }) {
             <DocFormField label="Tipi i Dokumentit *" id="dt">
               <Select
                 value={form.document_type}
-                onValueChange={(v) =>
-                  setForm((p) => ({ ...p, document_type: v }))
-                }
+                onValueChange={(v) => {
+                  setForm((p) => ({ ...p, document_type: v }));
+                  if (v !== "Tjetër") setCustomType("");
+                }}
               >
                 <SelectTrigger className="border-gray-300 h-9 text-sm">
                   <SelectValue placeholder="Zgjidhni dokumentin" />
                 </SelectTrigger>
                 <SelectContent>
-                  {DRIVER_DOC_TYPES.map((t) => (
+                  {[...DRIVER_DOC_TYPES, "Tjetër"].map((t) => (
                     <SelectItem key={t} value={t}>
                       {t}
                     </SelectItem>
@@ -449,6 +679,16 @@ function DriverDocsTab({ operatorId }: { operatorId: string }) {
                 </SelectContent>
               </Select>
             </DocFormField>
+            {form.document_type === "Tjetër" && (
+              <DocFormField label="Emri i Dokumentit të ri *" id="custom-type">
+                <Input
+                  placeholder="p.sh. Certifikatë..."
+                  value={customType}
+                  onChange={(e) => setCustomType(e.target.value)}
+                  className="border-gray-350 h-9 text-sm"
+                />
+              </DocFormField>
+            )}
             <DocFormField label="Valid Deri Me *" id="vu">
               <Input
                 type="date"
@@ -548,7 +788,177 @@ function DriverDocsTab({ operatorId }: { operatorId: string }) {
         </SheetContent>
       </Sheet>
 
-      {/* Delete confirm */}
+      <Sheet open={editSheetOpen} onOpenChange={setEditSheetOpen}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-white">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-base font-bold text-gray-900">
+              Ndrysho Dokument Shoferi
+            </SheetTitle>
+            <SheetDescription className="text-sm text-gray-500">
+              Përditëso detajet e dokumentit të shoferit.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-4 py-2">
+            <DocFormField label="Emri i Shoferit *" id="edit-dn">
+              <Input
+                placeholder="Arben Krasniqi"
+                value={editForm.driver_name}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, driver_name: e.target.value }))
+                }
+                className="border-gray-300 h-9 text-sm"
+              />
+            </DocFormField>
+            <DocFormField label="Tipi i Dokumentit *" id="edit-dt">
+              <Select
+                value={editForm.document_type}
+                onValueChange={(v) => {
+                  setEditForm((p) => ({ ...p, document_type: v }));
+                  if (v !== "Tjetër") setCustomType("");
+                }}
+              >
+                <SelectTrigger className="border-gray-300 h-9 text-sm">
+                  <SelectValue placeholder="Zgjidhni dokumentin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[...DRIVER_DOC_TYPES, "Tjetër"].map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </DocFormField>
+            {editForm.document_type === "Tjetër" && (
+              <DocFormField label="Emri i Dokumentit të ri *" id="edit-custom-type">
+                <Input
+                  placeholder="p.sh. Certifikatë..."
+                  value={customType}
+                  onChange={(e) => setCustomType(e.target.value)}
+                  className="border-gray-300 h-9 text-sm"
+                />
+              </DocFormField>
+            )}
+            <DocFormField label="Valid Deri Me *" id="edit-vu">
+              <Input
+                type="date"
+                value={editForm.valid_until}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, valid_until: e.target.value }))
+                }
+                className="border-gray-300 h-9 text-sm"
+              />
+            </DocFormField>
+            <DocFormField label="Alarmi (ditë para skadimit)" id="edit-ad">
+              <Select
+                value={String(editForm.alarm_days)}
+                onValueChange={(v) =>
+                  setEditForm((p) => ({ ...p, alarm_days: Number(v) }))
+                }
+              >
+                <SelectTrigger className="border-gray-300 h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALARM_OPTIONS.map((d) => (
+                    <SelectItem key={d} value={String(d)}>
+                      {d} ditë para
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </DocFormField>
+            <DocFormField label="Skedar (foto/PDF)" id="edit-file">
+              <div className="flex flex-col gap-2">
+                {editTarget?.file_url && (
+                  <div className="flex items-center justify-between bg-blue-50 border border-blue-100 p-2 rounded-lg text-xs">
+                    <span className="text-blue-700 font-medium truncate max-w-[200px]">
+                      Skedari ekzistues
+                    </span>
+                    <a
+                      href={editTarget.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline font-bold"
+                    >
+                      Shiko
+                    </a>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 text-gray-700 gap-1.5 h-9"
+                    onClick={() => editFileRef.current?.click()}
+                  >
+                    <Upload className="h-3.5 w-3.5" /> Ngarko të ri
+                  </Button>
+                  {selectedFile && (
+                    <div className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2.5 py-1.5 rounded-lg">
+                      {selectedFile.name}
+                      <button
+                        onClick={() => {
+                          setSelectedFile(null);
+                          if (editFileRef.current) editFileRef.current.value = "";
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5 text-gray-400 hover:text-gray-700 ml-1" />
+                      </button>
+                    </div>
+                  )}
+                  <input
+                    ref={editFileRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+                  />
+                </div>
+              </div>
+            </DocFormField>
+            <DocFormField label="Shënime" id="edit-notes">
+              <Input
+                placeholder="Shënime opsionale..."
+                value={editForm.notes}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, notes: e.target.value }))
+                }
+                className="border-gray-300 h-9 text-sm"
+              />
+            </DocFormField>
+          </div>
+          <SheetFooter className="pt-4 border-t border-gray-100 flex flex-row gap-3 mt-4">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-300 text-gray-700"
+              onClick={() => {
+                setEditSheetOpen(false);
+                setEditTarget(null);
+                setSelectedFile(null);
+              }}
+              disabled={isSubmitting || uploading}
+            >
+              Anulo
+            </Button>
+            <Button
+              className="flex-1 bg-gray-900 text-white hover:bg-gray-800"
+              onClick={handleEditSubmit}
+              disabled={isSubmitting || uploading}
+            >
+              {isSubmitting || uploading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Duke përditësuar...
+                </span>
+              ) : (
+                "Ruaj Ndryshimet"
+              )}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
       <DeleteConfirm
         open={!!delTarget}
         onCancel={() => setDelTarget(null)}
@@ -564,23 +974,25 @@ function DriverDocsTab({ operatorId }: { operatorId: string }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════════
-// TAB 2 — BUS DOCUMENTS
-// ════════════════════════════════════════════════════════════════
 function BusDocsTab({ operatorId }: { operatorId: string }) {
   const { toast } = useToast();
   const docs = useQuery(api.documents.getBusDocuments, {
     operator_id: operatorId,
   });
   const createDoc = useMutation(api.documents.createBusDocument);
+  const updateDoc = useMutation(api.documents.updateBusDocument);
   const deleteDoc = useMutation(api.documents.deleteBusDocument);
   const { uploadFile, uploading } = useFileUpload();
 
   const [search, setSearch] = useState("");
+  const [selectedBus, setSelectedBus] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [delTarget, setDelTarget] = useState<Id<"bus_documents"> | null>(null);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const editFileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     bus_plates: "",
@@ -590,13 +1002,34 @@ function BusDocsTab({ operatorId }: { operatorId: string }) {
     alarm_days: 30,
     notes: "",
   });
+  const [editForm, setEditForm] = useState({
+    bus_plates: "",
+    bus_serial: "",
+    document_type: "",
+    valid_until: "",
+    alarm_days: 30,
+    notes: "",
+  });
+  const [customType, setCustomType] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const filtered = (docs ?? []).filter(
-    (d) =>
-      d.bus_plates.toLowerCase().includes(search.toLowerCase()) ||
-      d.document_type.toLowerCase().includes(search.toLowerCase()) ||
-      (d.bus_serial ?? "").toLowerCase().includes(search.toLowerCase()),
+  const grouped = (docs ?? []).reduce((acc, doc) => {
+    const plates = doc.bus_plates;
+    if (!acc[plates]) {
+      acc[plates] = { plates, bus_serial: doc.bus_serial, docs: [] };
+    }
+    acc[plates].docs.push(doc);
+    return acc;
+  }, {} as Record<string, { plates: string; bus_serial?: string; docs: typeof docs }>);
+
+  const busList = Object.values(grouped).filter((b) =>
+    b.plates.toLowerCase().includes(search.toLowerCase()) ||
+    (b.bus_serial ?? "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  const busDocs = selectedBus ? grouped[selectedBus]?.docs ?? [] : [];
+  const filteredDocs = busDocs.filter((d) =>
+    d.document_type.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleSubmit = async () => {
@@ -608,6 +1041,15 @@ function BusDocsTab({ operatorId }: { operatorId: string }) {
       });
       return;
     }
+    const finalDocType = form.document_type === "Tjetër" ? customType : form.document_type;
+    if (!finalDocType) {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description: "Plotëso emrin e dokumentit të personalizuar.",
+      });
+      return;
+    }
     setIsSubmitting(true);
     try {
       let file_storage_id: Id<"_storage"> | undefined;
@@ -615,7 +1057,16 @@ function BusDocsTab({ operatorId }: { operatorId: string }) {
         const id = await uploadFile(selectedFile);
         if (id) file_storage_id = id;
       }
-      await createDoc({ operator_id: operatorId, ...form, file_storage_id });
+      await createDoc({
+        operator_id: operatorId,
+        bus_plates: form.bus_plates,
+        bus_serial: form.bus_serial || undefined,
+        document_type: finalDocType,
+        valid_until: form.valid_until,
+        alarm_days: form.alarm_days,
+        notes: form.notes,
+        file_storage_id,
+      });
       toast({ title: "Sukses", description: "Dokumenti u regjistrua." });
       setSheetOpen(false);
       setForm({
@@ -626,6 +1077,7 @@ function BusDocsTab({ operatorId }: { operatorId: string }) {
         alarm_days: 30,
         notes: "",
       });
+      setCustomType("");
       setSelectedFile(null);
     } catch {
       toast({
@@ -638,6 +1090,76 @@ function BusDocsTab({ operatorId }: { operatorId: string }) {
     }
   };
 
+  const handleEditSubmit = async () => {
+    if (!editForm.bus_plates || !editForm.document_type || !editForm.valid_until) {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description: "Plotëso fushat e detyrueshme.",
+      });
+      return;
+    }
+    const finalDocType = editForm.document_type === "Tjetër" ? customType : editForm.document_type;
+    if (!finalDocType) {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description: "Plotëso emrin e dokumentit të personalizuar.",
+      });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      let file_storage_id: Id<"_storage"> | undefined;
+      if (selectedFile) {
+        const id = await uploadFile(selectedFile);
+        if (id) file_storage_id = id;
+      }
+      await updateDoc({
+        id: editTarget._id,
+        bus_plates: editForm.bus_plates,
+        bus_serial: editForm.bus_serial || undefined,
+        document_type: finalDocType,
+        valid_until: editForm.valid_until,
+        alarm_days: editForm.alarm_days,
+        notes: editForm.notes,
+        file_storage_id,
+      });
+      toast({ title: "Sukses", description: "Dokumenti u përditësua." });
+      setEditSheetOpen(false);
+      setEditTarget(null);
+      setCustomType("");
+      setSelectedFile(null);
+      if (selectedBus && selectedBus !== editForm.bus_plates) {
+        setSelectedBus(editForm.bus_plates);
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description: "Ndodhi një gabim.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenEdit = (doc: any) => {
+    const isCustom = !BUS_DOC_TYPES.includes(doc.document_type);
+    setEditTarget(doc);
+    setEditForm({
+      bus_plates: doc.bus_plates,
+      bus_serial: doc.bus_serial || "",
+      document_type: isCustom ? "Tjetër" : doc.document_type,
+      valid_until: doc.valid_until,
+      alarm_days: doc.alarm_days,
+      notes: doc.notes || "",
+    });
+    setCustomType(isCustom ? doc.document_type : "");
+    setSelectedFile(null);
+    setEditSheetOpen(true);
+  };
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -646,14 +1168,26 @@ function BusDocsTab({ operatorId }: { operatorId: string }) {
           <div className="relative w-56">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Kerko..."
+              placeholder={selectedBus ? "Kërko dokument..." : "Kërko autobus..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9 border-gray-300 text-sm"
             />
           </div>
           <Button
-            onClick={() => setSheetOpen(true)}
+            onClick={() => {
+              setForm({
+                bus_plates: selectedBus || "",
+                bus_serial: selectedBus ? grouped[selectedBus]?.bus_serial || "" : "",
+                document_type: "",
+                valid_until: "",
+                alarm_days: 30,
+                notes: "",
+              });
+              setCustomType("");
+              setSelectedFile(null);
+              setSheetOpen(true);
+            }}
             className="bg-gray-900 text-white hover:bg-gray-800 gap-1.5 h-9"
           >
             <Plus className="h-4 w-4" /> Regjistro
@@ -661,99 +1195,213 @@ function BusDocsTab({ operatorId }: { operatorId: string }) {
         </div>
       </div>
 
-      <Card className="border-gray-200 shadow-sm overflow-hidden">
-        <CardContent className="p-0">
-          {docs === undefined ? (
-            <div className="p-5 space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-11 w-full rounded-lg" />
-              ))}
+      {docs === undefined ? (
+        <div className="p-5 space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-11 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : !selectedBus ? (
+        busList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-14 gap-3 bg-white rounded-xl border border-gray-200">
+            <Bus className="h-10 w-10 text-gray-200" />
+            <p className="text-sm font-medium text-gray-500">
+              {search ? "Nuk u gjet asnjë autobus." : "Nuk ka autobusë të regjistruar."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {busList.map((bus) => {
+              const busExpired = bus.docs.filter(
+                (d) => differenceInDays(parseISO(d.valid_until), new Date()) < 0
+              ).length;
+              const busWarning = bus.docs.filter((d) => {
+                const days = differenceInDays(parseISO(d.valid_until), new Date());
+                return days >= 0 && days <= d.alarm_days;
+              }).length;
+
+              return (
+                <Card
+                  key={bus.plates}
+                  className="border-gray-200 shadow-sm hover:shadow-md transition duration-200 cursor-pointer"
+                  onClick={() => {
+                    setSelectedBus(bus.plates);
+                    setSearch("");
+                  }}
+                >
+                  <CardContent className="p-5 flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 font-semibold text-sm">
+                        <Bus className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-mono font-bold text-gray-900 truncate">{bus.plates}</h3>
+                        <p className="text-xs text-gray-500 truncate">
+                          {bus.bus_serial ? `Seria: ${bus.bus_serial}` : "Nuk ka seri"}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">{bus.docs.length} dokumente</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {busExpired > 0 ? (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+                          <AlertTriangle className="h-3 w-3" /> {busExpired} skaduar
+                        </span>
+                      ) : null}
+                      {busWarning > 0 ? (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                          <Clock className="h-3 w-3" /> {busWarning} paralajmërim
+                        </span>
+                      ) : null}
+                      {busExpired === 0 && busWarning === 0 ? (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+                          <CheckCircle2 className="h-3 w-3" /> Në rregull
+                        </span>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setSelectedBus(null);
+                  setSearch("");
+                }}
+                className="h-8 w-8 text-gray-500 hover:text-gray-950"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h2 className="font-bold text-gray-900 text-lg font-mono">{selectedBus}</h2>
+                <p className="text-xs text-gray-500">
+                  {grouped[selectedBus]?.bus_serial ? `Seria: ${grouped[selectedBus].bus_serial}` : "Dokumentet e autobusit"}
+                </p>
+              </div>
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-14 gap-3">
-              <Bus className="h-10 w-10 text-gray-200" />
-              <p className="text-sm font-medium text-gray-500">
-                {search
-                  ? "Nuk u gjet asnjë dokument."
-                  : "Nuk ka dokumente të regjistruara."}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <DocTableHead cols={["Bus Tabllat", "Bus Seria", "Tipi"]} />
-                <TableBody>
-                  {filtered.map((doc) => (
-                    <TableRow
-                      key={doc._id}
-                      className="border-gray-100 hover:bg-gray-50/50"
-                    >
-                      <TableCell className="text-sm font-medium text-gray-900 font-mono py-3">
-                        {doc.bus_plates}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-500 font-mono">
-                        {doc.bus_serial || "—"}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        <Badge
-                          variant="outline"
-                          className="border-gray-200 text-gray-600 text-xs"
+            <Button
+              onClick={() => {
+                setForm({
+                  bus_plates: selectedBus,
+                  bus_serial: grouped[selectedBus]?.bus_serial || "",
+                  document_type: "",
+                  valid_until: "",
+                  alarm_days: 30,
+                  notes: "",
+                });
+                setCustomType("");
+                setSelectedFile(null);
+                setSheetOpen(true);
+              }}
+              size="sm"
+              className="bg-gray-900 text-white hover:bg-gray-800 gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5" /> Shto Dokument
+            </Button>
+          </div>
+
+          <Card className="border-gray-200 shadow-sm overflow-hidden">
+            <CardContent className="p-0">
+              {filteredDocs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-14 gap-3 bg-white">
+                  <FileText className="h-10 w-10 text-gray-200" />
+                  <p className="text-sm font-medium text-gray-500">
+                    {search ? "Nuk u gjet asnjë dokument." : "Nuk ka dokumente për këtë autobus."}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <DocTableHead cols={["Tipi", "Shënime"]} />
+                    <TableBody>
+                      {filteredDocs.map((doc) => (
+                        <TableRow
+                          key={doc._id}
+                          className="border-gray-100 hover:bg-gray-50/50"
                         >
-                          {doc.document_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <ExpiryBadge
-                          validUntil={doc.valid_until}
-                          alarmDays={doc.alarm_days}
-                        />
-                      </TableCell>
-                      <TableCell className="text-center text-xs text-gray-500">
-                        {doc.alarm_days}d
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {doc.file_url ? (
-                          <a
-                            href={doc.file_url}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-blue-500 hover:text-blue-700"
+                          <TableCell className="text-sm font-semibold text-gray-900 py-3">
+                            <Badge
+                              variant="outline"
+                              className="border-gray-200 bg-gray-50 text-gray-750 text-xs"
                             >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                          </a>
-                        ) : (
-                          <span className="text-xs text-gray-300">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-gray-400 hover:text-red-600"
-                          onClick={() => setDelTarget(doc._id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                              {doc.document_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-500 max-w-[200px] truncate">
+                            {doc.notes || "—"}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <ExpiryBadge
+                              validUntil={doc.valid_until}
+                              alarmDays={doc.alarm_days}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center text-xs text-gray-500">
+                            {doc.alarm_days}d
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {doc.file_url ? (
+                              <a
+                                href={doc.file_url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-blue-500 hover:text-blue-700"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </Button>
+                              </a>
+                            ) : (
+                              <span className="text-xs text-gray-300">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-gray-400 hover:text-gray-900"
+                                onClick={() => handleOpenEdit(doc)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-gray-400 hover:text-red-600"
+                                onClick={() => setDelTarget(doc._id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-white">
           <SheetHeader className="pb-4">
             <SheetTitle className="text-base font-bold text-gray-900">
-              Regjistro Dokument Busi
+              Regjistro Dokument Autobusi
             </SheetTitle>
             <SheetDescription className="text-sm text-gray-500">
               Shto dokumentin e ri të autobusit.
@@ -783,15 +1431,16 @@ function BusDocsTab({ operatorId }: { operatorId: string }) {
             <DocFormField label="Tipi i Dokumentit *" id="dt">
               <Select
                 value={form.document_type}
-                onValueChange={(v) =>
-                  setForm((p) => ({ ...p, document_type: v }))
-                }
+                onValueChange={(v) => {
+                  setForm((p) => ({ ...p, document_type: v }));
+                  if (v !== "Tjetër") setCustomType("");
+                }}
               >
                 <SelectTrigger className="border-gray-300 h-9 text-sm">
                   <SelectValue placeholder="Zgjidhni dokumentin" />
                 </SelectTrigger>
                 <SelectContent>
-                  {BUS_DOC_TYPES.map((t) => (
+                  {[...BUS_DOC_TYPES, "Tjetër"].map((t) => (
                     <SelectItem key={t} value={t}>
                       {t}
                     </SelectItem>
@@ -799,6 +1448,16 @@ function BusDocsTab({ operatorId }: { operatorId: string }) {
                 </SelectContent>
               </Select>
             </DocFormField>
+            {form.document_type === "Tjetër" && (
+              <DocFormField label="Emri i Dokumentit të ri *" id="custom-type">
+                <Input
+                  placeholder="p.sh. Libreza e gjelbër..."
+                  value={customType}
+                  onChange={(e) => setCustomType(e.target.value)}
+                  className="border-gray-300 h-9 text-sm"
+                />
+              </DocFormField>
+            )}
             <DocFormField label="Valid Deri Me *" id="vu">
               <Input
                 type="date"
@@ -898,6 +1557,187 @@ function BusDocsTab({ operatorId }: { operatorId: string }) {
         </SheetContent>
       </Sheet>
 
+      <Sheet open={editSheetOpen} onOpenChange={setEditSheetOpen}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-white">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-base font-bold text-gray-900">
+              Ndrysho Dokument Autobusi
+            </SheetTitle>
+            <SheetDescription className="text-sm text-gray-500">
+              Përditëso detajet e dokumentit të autobusit.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-4 py-2">
+            <DocFormField label="Bus Tabllat *" id="edit-bp">
+              <Input
+                placeholder="MK-AB-123"
+                value={editForm.bus_plates}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, bus_plates: e.target.value }))
+                }
+                className="border-gray-300 h-9 text-sm font-mono"
+              />
+            </DocFormField>
+            <DocFormField label="Bus Seria" id="edit-bs">
+              <Input
+                placeholder="WDB9066351R....."
+                value={editForm.bus_serial}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, bus_serial: e.target.value }))
+                }
+                className="border-gray-300 h-9 text-sm font-mono"
+              />
+            </DocFormField>
+            <DocFormField label="Tipi i Dokumentit *" id="edit-dt">
+              <Select
+                value={editForm.document_type}
+                onValueChange={(v) => {
+                  setEditForm((p) => ({ ...p, document_type: v }));
+                  if (v !== "Tjetër") setCustomType("");
+                }}
+              >
+                <SelectTrigger className="border-gray-300 h-9 text-sm">
+                  <SelectValue placeholder="Zgjidhni dokumentin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[...BUS_DOC_TYPES, "Tjetër"].map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </DocFormField>
+            {editForm.document_type === "Tjetër" && (
+              <DocFormField label="Emri i Dokumentit të ri *" id="edit-custom-type">
+                <Input
+                  placeholder="p.sh. Libreza e gjelbër..."
+                  value={customType}
+                  onChange={(e) => setCustomType(e.target.value)}
+                  className="border-gray-300 h-9 text-sm"
+                />
+              </DocFormField>
+            )}
+            <DocFormField label="Valid Deri Me *" id="edit-vu">
+              <Input
+                type="date"
+                value={editForm.valid_until}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, valid_until: e.target.value }))
+                }
+                className="border-gray-300 h-9 text-sm"
+              />
+            </DocFormField>
+            <DocFormField label="Alarmi (ditë para skadimit)" id="edit-ad">
+              <Select
+                value={String(editForm.alarm_days)}
+                onValueChange={(v) =>
+                  setEditForm((p) => ({ ...p, alarm_days: Number(v) }))
+                }
+              >
+                <SelectTrigger className="border-gray-300 h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALARM_OPTIONS.map((d) => (
+                    <SelectItem key={d} value={String(d)}>
+                      {d} ditë para
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </DocFormField>
+            <DocFormField label="Skedar (foto/PDF)" id="edit-file">
+              <div className="flex flex-col gap-2">
+                {editTarget?.file_url && (
+                  <div className="flex items-center justify-between bg-blue-50 border border-blue-100 p-2 rounded-lg text-xs">
+                    <span className="text-blue-700 font-medium truncate max-w-[200px]">
+                      Skedari ekzistues
+                    </span>
+                    <a
+                      href={editTarget.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline font-bold"
+                    >
+                      Shiko
+                    </a>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 text-gray-700 gap-1.5 h-9"
+                    onClick={() => editFileRef.current?.click()}
+                  >
+                    <Upload className="h-3.5 w-3.5" /> Ngarko të ri
+                  </Button>
+                  {selectedFile && (
+                    <div className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2.5 py-1.5 rounded-lg">
+                      {selectedFile.name}
+                      <button
+                        onClick={() => {
+                          setSelectedFile(null);
+                          if (editFileRef.current) editFileRef.current.value = "";
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5 text-gray-400 hover:text-gray-700 ml-1" />
+                      </button>
+                    </div>
+                  )}
+                  <input
+                    ref={editFileRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+                  />
+                </div>
+              </div>
+            </DocFormField>
+            <DocFormField label="Shënime" id="edit-notes">
+              <Input
+                placeholder="Shënime opsionale..."
+                value={editForm.notes}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, notes: e.target.value }))
+                }
+                className="border-gray-300 h-9 text-sm"
+              />
+            </DocFormField>
+          </div>
+          <SheetFooter className="pt-4 border-t border-gray-100 flex flex-row gap-3 mt-4">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-300 text-gray-700"
+              onClick={() => {
+                setEditSheetOpen(false);
+                setEditTarget(null);
+                setSelectedFile(null);
+              }}
+              disabled={isSubmitting || uploading}
+            >
+              Anulo
+            </Button>
+            <Button
+              className="flex-1 bg-gray-900 text-white hover:bg-gray-800"
+              onClick={handleEditSubmit}
+              disabled={isSubmitting || uploading}
+            >
+              {isSubmitting || uploading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Duke përditësuar...
+                </span>
+              ) : (
+                "Ruaj Ndryshimet"
+              )}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
       <DeleteConfirm
         open={!!delTarget}
         onCancel={() => setDelTarget(null)}
@@ -913,23 +1753,25 @@ function BusDocsTab({ operatorId }: { operatorId: string }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════════
-// TAB 3 — DOZVOLLAT
-// ════════════════════════════════════════════════════════════════
 function DozvollatTab({ operatorId }: { operatorId: string }) {
   const { toast } = useToast();
   const docs = useQuery(api.documents.getDozvollat, {
     operator_id: operatorId,
   });
   const createDoc = useMutation(api.documents.createDozvoll);
+  const updateDoc = useMutation(api.documents.updateDozvoll);
   const deleteDoc = useMutation(api.documents.deleteDozvoll);
   const { uploadFile, uploading } = useFileUpload();
 
   const [search, setSearch] = useState("");
+  const [selectedType, setSelectedType] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [delTarget, setDelTarget] = useState<Id<"dozvollat"> | null>(null);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const editFileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     document_type: "",
@@ -938,12 +1780,32 @@ function DozvollatTab({ operatorId }: { operatorId: string }) {
     alarm_days: 30,
     notes: "",
   });
+  const [editForm, setEditForm] = useState({
+    document_type: "",
+    label: "",
+    valid_until: "",
+    alarm_days: 30,
+    notes: "",
+  });
+  const [customType, setCustomType] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const filtered = (docs ?? []).filter(
-    (d) =>
-      d.label.toLowerCase().includes(search.toLowerCase()) ||
-      d.document_type.toLowerCase().includes(search.toLowerCase()),
+  const grouped = (docs ?? []).reduce((acc, doc) => {
+    const type = doc.document_type;
+    if (!acc[type]) {
+      acc[type] = { type, docs: [] };
+    }
+    acc[type].docs.push(doc);
+    return acc;
+  }, {} as Record<string, { type: string; docs: typeof docs }>);
+
+  const dozvollTypeList = Object.values(grouped).filter((d) =>
+    d.type.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const dozvollDocs = selectedType ? grouped[selectedType]?.docs ?? [] : [];
+  const filteredDocs = dozvollDocs.filter((d) =>
+    d.label.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleSubmit = async () => {
@@ -955,6 +1817,15 @@ function DozvollatTab({ operatorId }: { operatorId: string }) {
       });
       return;
     }
+    const finalDocType = form.document_type === "Tjetër" ? customType : form.document_type;
+    if (!finalDocType) {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description: "Plotëso emrin e dokumentit të personalizuar.",
+      });
+      return;
+    }
     setIsSubmitting(true);
     try {
       let file_storage_id: Id<"_storage"> | undefined;
@@ -962,7 +1833,15 @@ function DozvollatTab({ operatorId }: { operatorId: string }) {
         const id = await uploadFile(selectedFile);
         if (id) file_storage_id = id;
       }
-      await createDoc({ operator_id: operatorId, ...form, file_storage_id });
+      await createDoc({
+        operator_id: operatorId,
+        document_type: finalDocType,
+        label: form.label,
+        valid_until: form.valid_until,
+        alarm_days: form.alarm_days,
+        notes: form.notes,
+        file_storage_id,
+      });
       toast({ title: "Sukses", description: "Dozvolla u regjistrua." });
       setSheetOpen(false);
       setForm({
@@ -972,6 +1851,7 @@ function DozvollatTab({ operatorId }: { operatorId: string }) {
         alarm_days: 30,
         notes: "",
       });
+      setCustomType("");
       setSelectedFile(null);
     } catch {
       toast({
@@ -984,6 +1864,74 @@ function DozvollatTab({ operatorId }: { operatorId: string }) {
     }
   };
 
+  const handleEditSubmit = async () => {
+    if (!editForm.document_type || !editForm.label || !editForm.valid_until) {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description: "Plotëso fushat e detyrueshme.",
+      });
+      return;
+    }
+    const finalDocType = editForm.document_type === "Tjetër" ? customType : editForm.document_type;
+    if (!finalDocType) {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description: "Plotëso emrin e dokumentit të personalizuar.",
+      });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      let file_storage_id: Id<"_storage"> | undefined;
+      if (selectedFile) {
+        const id = await uploadFile(selectedFile);
+        if (id) file_storage_id = id;
+      }
+      await updateDoc({
+        id: editTarget._id,
+        document_type: finalDocType,
+        label: editForm.label,
+        valid_until: editForm.valid_until,
+        alarm_days: editForm.alarm_days,
+        notes: editForm.notes,
+        file_storage_id,
+      });
+      toast({ title: "Sukses", description: "Dozvolla u përditësua." });
+      setEditSheetOpen(false);
+      setEditTarget(null);
+      setCustomType("");
+      setSelectedFile(null);
+      if (selectedType && selectedType !== finalDocType) {
+        setSelectedType(finalDocType);
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Gabim",
+        description: "Ndodhi një gabim.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenEdit = (doc: any) => {
+    const isCustom = !DOZVOLL_DOC_TYPES.includes(doc.document_type);
+    setEditTarget(doc);
+    setEditForm({
+      document_type: isCustom ? "Tjetër" : doc.document_type,
+      label: doc.label,
+      valid_until: doc.valid_until,
+      alarm_days: doc.alarm_days,
+      notes: doc.notes || "",
+    });
+    setCustomType(isCustom ? doc.document_type : "");
+    setSelectedFile(null);
+    setEditSheetOpen(true);
+  };
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -992,14 +1940,25 @@ function DozvollatTab({ operatorId }: { operatorId: string }) {
           <div className="relative w-56">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Kerko..."
+              placeholder={selectedType ? "Kërko dozvoll..." : "Kërko tipin e dozvollës..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9 border-gray-300 text-sm"
             />
           </div>
           <Button
-            onClick={() => setSheetOpen(true)}
+            onClick={() => {
+              setForm({
+                document_type: selectedType || "",
+                label: "",
+                valid_until: "",
+                alarm_days: 30,
+                notes: "",
+              });
+              setCustomType("");
+              setSelectedFile(null);
+              setSheetOpen(true);
+            }}
             className="bg-gray-900 text-white hover:bg-gray-800 gap-1.5 h-9"
           >
             <Plus className="h-4 w-4" /> Regjistro
@@ -1007,109 +1966,215 @@ function DozvollatTab({ operatorId }: { operatorId: string }) {
         </div>
       </div>
 
-      <Card className="border-gray-200 shadow-sm overflow-hidden">
-        <CardContent className="p-0">
-          {docs === undefined ? (
-            <div className="p-5 space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-11 w-full rounded-lg" />
-              ))}
+      {docs === undefined ? (
+        <div className="p-5 space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-11 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : !selectedType ? (
+        dozvollTypeList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-14 gap-3 bg-white rounded-xl border border-gray-200">
+            <ShieldCheck className="h-10 w-10 text-gray-200" />
+            <p className="text-sm font-medium text-gray-500">
+              {search ? "Nuk u gjet asnjë dozvoll." : "Nuk ka dozvolla të regjistruara."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {dozvollTypeList.map((item) => {
+              const itemExpired = item.docs.filter(
+                (d) => differenceInDays(parseISO(d.valid_until), new Date()) < 0
+              ).length;
+              const itemWarning = item.docs.filter((d) => {
+                const days = differenceInDays(parseISO(d.valid_until), new Date());
+                return days >= 0 && days <= d.alarm_days;
+              }).length;
+
+              return (
+                <Card
+                  key={item.type}
+                  className="border-gray-200 shadow-sm hover:shadow-md transition duration-200 cursor-pointer"
+                  onClick={() => {
+                    setSelectedType(item.type);
+                    setSearch("");
+                  }}
+                >
+                  <CardContent className="p-5 flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-green-50 flex items-center justify-center text-green-600 font-semibold text-sm">
+                        <ShieldCheck className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate">{item.type}</h3>
+                        <p className="text-xs text-gray-500">{item.docs.length} leje / dozvolla</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {itemExpired > 0 ? (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+                          <AlertTriangle className="h-3 w-3" /> {itemExpired} skaduar
+                        </span>
+                      ) : null}
+                      {itemWarning > 0 ? (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                          <Clock className="h-3 w-3" /> {itemWarning} paralajmërim
+                        </span>
+                      ) : null}
+                      {itemExpired === 0 && itemWarning === 0 ? (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+                          <CheckCircle2 className="h-3 w-3" /> Në rregull
+                        </span>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setSelectedType(null);
+                  setSearch("");
+                }}
+                className="h-8 w-8 text-gray-500 hover:text-gray-950"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h2 className="font-bold text-gray-900 text-lg">{selectedType}</h2>
+                <p className="text-xs text-gray-500">Lejet e këtij tipi</p>
+              </div>
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-14 gap-3">
-              <ShieldCheck className="h-10 w-10 text-gray-200" />
-              <p className="text-sm font-medium text-gray-500">
-                {search
-                  ? "Nuk u gjet asnjë dozvoll."
-                  : "Nuk ka dozvolla të regjistruara."}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-gray-50">
-                  <TableRow className="border-gray-100">
-                    <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Emërtimi
-                    </TableHead>
-                    <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tipi
-                    </TableHead>
-                    <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider text-center">
-                      Valid Deri
-                    </TableHead>
-                    <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider text-center">
-                      Alarmi
-                    </TableHead>
-                    <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider text-center">
-                      Foto
-                    </TableHead>
-                    <TableHead className="w-16" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((doc) => (
-                    <TableRow
-                      key={doc._id}
-                      className="border-gray-100 hover:bg-gray-50/50"
-                    >
-                      <TableCell className="text-sm font-medium text-gray-900 py-3">
-                        {doc.label}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        <Badge
-                          variant="outline"
-                          className="border-gray-200 text-gray-600 text-xs"
+            <Button
+              onClick={() => {
+                setForm({
+                  document_type: selectedType,
+                  label: "",
+                  valid_until: "",
+                  alarm_days: 30,
+                  notes: "",
+                });
+                setCustomType("");
+                setSelectedFile(null);
+                setSheetOpen(true);
+              }}
+              size="sm"
+              className="bg-gray-900 text-white hover:bg-gray-800 gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5" /> Shto Dokument
+            </Button>
+          </div>
+
+          <Card className="border-gray-200 shadow-sm overflow-hidden">
+            <CardContent className="p-0">
+              {filteredDocs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-14 gap-3 bg-white">
+                  <FileText className="h-10 w-10 text-gray-200" />
+                  <p className="text-sm font-medium text-gray-500">
+                    {search ? "Nuk u gjet asnjë dozvoll." : "Nuk ka leje të këtij tipi."}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-gray-50">
+                      <TableRow className="border-gray-100">
+                        <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Emërtimi
+                        </TableHead>
+                        <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Shënime
+                        </TableHead>
+                        <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider text-center">
+                          Valid Deri
+                        </TableHead>
+                        <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider text-center">
+                          Alarmi
+                        </TableHead>
+                        <TableHead className="text-xs font-medium text-gray-500 uppercase tracking-wider text-center">
+                          Foto
+                        </TableHead>
+                        <TableHead className="w-16" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredDocs.map((doc) => (
+                        <TableRow
+                          key={doc._id}
+                          className="border-gray-100 hover:bg-gray-50/50"
                         >
-                          {doc.document_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <ExpiryBadge
-                          validUntil={doc.valid_until}
-                          alarmDays={doc.alarm_days}
-                        />
-                      </TableCell>
-                      <TableCell className="text-center text-xs text-gray-500">
-                        {doc.alarm_days}d
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {doc.file_url ? (
-                          <a
-                            href={doc.file_url}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-blue-500 hover:text-blue-700"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                          </a>
-                        ) : (
-                          <span className="text-xs text-gray-300">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-gray-400 hover:text-red-600"
-                          onClick={() => setDelTarget(doc._id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                          <TableCell className="text-sm font-semibold text-gray-900 py-3">
+                            {doc.label}
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-500 max-w-[200px] truncate">
+                            {doc.notes || "—"}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <ExpiryBadge
+                              validUntil={doc.valid_until}
+                              alarmDays={doc.alarm_days}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center text-xs text-gray-500">
+                            {doc.alarm_days}d
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {doc.file_url ? (
+                              <a
+                                href={doc.file_url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-blue-500 hover:text-blue-700"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </Button>
+                              </a>
+                            ) : (
+                              <span className="text-xs text-gray-300">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-gray-400 hover:text-gray-900"
+                                onClick={() => handleOpenEdit(doc)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-gray-400 hover:text-red-600"
+                                onClick={() => setDelTarget(doc._id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-white">
@@ -1125,15 +2190,16 @@ function DozvollatTab({ operatorId }: { operatorId: string }) {
             <DocFormField label="Tipi i Dokumentit *" id="dt">
               <Select
                 value={form.document_type}
-                onValueChange={(v) =>
-                  setForm((p) => ({ ...p, document_type: v }))
-                }
+                onValueChange={(v) => {
+                  setForm((p) => ({ ...p, document_type: v }));
+                  if (v !== "Tjetër") setCustomType("");
+                }}
               >
                 <SelectTrigger className="border-gray-300 h-9 text-sm">
                   <SelectValue placeholder="Zgjidhni dokumentin" />
                 </SelectTrigger>
                 <SelectContent>
-                  {DOZVOLL_DOC_TYPES.map((t) => (
+                  {[...DOZVOLL_DOC_TYPES, "Tjetër"].map((t) => (
                     <SelectItem key={t} value={t}>
                       {t}
                     </SelectItem>
@@ -1141,6 +2207,16 @@ function DozvollatTab({ operatorId }: { operatorId: string }) {
                 </SelectContent>
               </Select>
             </DocFormField>
+            {form.document_type === "Tjetër" && (
+              <DocFormField label="Emri i Dokumentit të ri *" id="custom-type">
+                <Input
+                  placeholder="p.sh. CEMT..."
+                  value={customType}
+                  onChange={(e) => setCustomType(e.target.value)}
+                  className="border-gray-300 h-9 text-sm"
+                />
+              </DocFormField>
+            )}
             <DocFormField label="Emërtimi (Etiketa) *" id="lbl">
               <Input
                 placeholder="p.sh. Dozvoll Gjermani 2026"
@@ -1244,6 +2320,168 @@ function DozvollatTab({ operatorId }: { operatorId: string }) {
                 </span>
               ) : (
                 "Regjistro"
+              )}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={editSheetOpen} onOpenChange={(o) => {
+        if (!o) {
+          setEditSheetOpen(false);
+          setEditTarget(null);
+          setCustomType("");
+          setSelectedFile(null);
+        }
+      }}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-white">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-base font-bold text-gray-900">
+              Modifiko Dozvoll
+            </SheetTitle>
+            <SheetDescription className="text-sm text-gray-500">
+              Përditëso të dhënat e dozvollës.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-4 py-2">
+            <DocFormField label="Tipi i Dokumentit *" id="edit-dt">
+              <Select
+                value={editForm.document_type}
+                onValueChange={(v) => {
+                  setEditForm((p) => ({ ...p, document_type: v }));
+                  if (v !== "Tjetër") setCustomType("");
+                }}
+              >
+                <SelectTrigger className="border-gray-300 h-9 text-sm">
+                  <SelectValue placeholder="Zgjidhni dokumentin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[...DOZVOLL_DOC_TYPES, "Tjetër"].map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </DocFormField>
+            {editForm.document_type === "Tjetër" && (
+              <DocFormField label="Emri i Dokumentit të ri *" id="edit-custom-type">
+                <Input
+                  placeholder="p.sh. CEMT..."
+                  value={customType}
+                  onChange={(e) => setCustomType(e.target.value)}
+                  className="border-gray-300 h-9 text-sm"
+                />
+              </DocFormField>
+            )}
+            <DocFormField label="Emërtimi (Etiketa) *" id="edit-lbl">
+              <Input
+                placeholder="p.sh. Dozvoll Gjermani 2026"
+                value={editForm.label}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, label: e.target.value }))
+                }
+                className="border-gray-300 h-9 text-sm"
+              />
+            </DocFormField>
+            <DocFormField label="Valid Deri Me *" id="edit-vu">
+              <Input
+                type="date"
+                value={editForm.valid_until}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, valid_until: e.target.value }))
+                }
+                className="border-gray-300 h-9 text-sm"
+              />
+            </DocFormField>
+            <DocFormField label="Alarmi (ditë para skadimit)" id="edit-ad">
+              <Select
+                value={String(editForm.alarm_days)}
+                onValueChange={(v) =>
+                  setEditForm((p) => ({ ...p, alarm_days: Number(v) }))
+                }
+              >
+                <SelectTrigger className="border-gray-300 h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALARM_OPTIONS.map((d) => (
+                    <SelectItem key={d} value={String(d)}>
+                      {d} ditë para
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </DocFormField>
+            <DocFormField label="Skedar i ri (opsional)" id="edit-file">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-300 text-gray-700 gap-1.5 h-9"
+                  onClick={() => editFileRef.current?.click()}
+                >
+                  <Upload className="h-3.5 w-3.5" /> Ngarko
+                </Button>
+                {selectedFile && (
+                  <div className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 px-2.5 py-1.5 rounded-lg">
+                    {selectedFile.name}
+                    <button
+                      onClick={() => {
+                        setSelectedFile(null);
+                        if (editFileRef.current) editFileRef.current.value = "";
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5 text-gray-400 hover:text-gray-700 ml-1" />
+                    </button>
+                  </div>
+                )}
+                <input
+                  ref={editFileRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="hidden"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+                />
+              </div>
+            </DocFormField>
+            <DocFormField label="Shënime" id="edit-notes">
+              <Input
+                placeholder="Shënime opsionale..."
+                value={editForm.notes}
+                onChange={(e) =>
+                  setEditForm((p) => ({ ...p, notes: e.target.value }))
+                }
+                className="border-gray-300 h-9 text-sm"
+              />
+            </DocFormField>
+          </div>
+          <SheetFooter className="pt-4 border-t border-gray-100 flex flex-row gap-3 mt-4">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-300 text-gray-700"
+              onClick={() => {
+                setEditSheetOpen(false);
+                setEditTarget(null);
+                setCustomType("");
+                setSelectedFile(null);
+              }}
+              disabled={isSubmitting || uploading}
+            >
+              Anulo
+            </Button>
+            <Button
+              className="flex-1 bg-gray-900 text-white hover:bg-gray-800"
+              onClick={handleEditSubmit}
+              disabled={isSubmitting || uploading}
+            >
+              {isSubmitting || uploading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Duke përditësuar...
+                </span>
+              ) : (
+                "Ruaj Ndryshimet"
               )}
             </Button>
           </SheetFooter>

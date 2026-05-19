@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 export async function deleteRoute(route_id: string) {
   try {
     const res = await apiClient.post(`/route/delete/${route_id}`);
-    revalidatePath("/lines/create");
+    if (typeof window === "undefined") {
+      revalidatePath("/lines/create");
+    }
     return res?.data?.message;
   } catch (error) {
     console.error("Error deleting route:", error);
@@ -27,7 +29,9 @@ export async function createRoute(route: Route, operator_id: string) {
     };
 
     const res = await apiClient.post(`/route/create/${operator_id}`, payload);
-    revalidatePath("/lines/create");
+    if (typeof window === "undefined") {
+      revalidatePath("/lines/create");
+    }
     return res?.data?.message;
   } catch (error) {
     console.error("Error creating route:", error);

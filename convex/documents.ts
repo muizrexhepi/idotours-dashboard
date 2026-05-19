@@ -62,6 +62,38 @@ export const deleteDriverDocument = mutation({
   },
 });
 
+export const updateDriverDocument = mutation({
+  args: {
+    id: v.id("driver_documents"),
+    driver_name: v.string(),
+    document_type: v.string(),
+    valid_until: v.string(),
+    alarm_days: v.number(),
+    file_storage_id: v.optional(v.id("_storage")),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...rest } = args;
+    const existing = await ctx.db.get(id);
+    if (!existing) throw new Error("Document not found");
+    let file_url = existing.file_url;
+    let file_storage_id = existing.file_storage_id;
+    if (args.file_storage_id && args.file_storage_id !== existing.file_storage_id) {
+      if (existing.file_storage_id) {
+        await ctx.storage.delete(existing.file_storage_id);
+      }
+      file_storage_id = args.file_storage_id;
+      file_url = (await ctx.storage.getUrl(args.file_storage_id)) ?? undefined;
+    }
+    await ctx.db.patch(id, {
+      ...rest,
+      file_url,
+      file_storage_id,
+    });
+  },
+});
+
+
 // ════════════════════════════════════════════════════════════════
 // BUS DOCUMENTS
 // ════════════════════════════════════════════════════════════════
@@ -112,6 +144,39 @@ export const deleteBusDocument = mutation({
   },
 });
 
+export const updateBusDocument = mutation({
+  args: {
+    id: v.id("bus_documents"),
+    bus_plates: v.string(),
+    bus_serial: v.optional(v.string()),
+    document_type: v.string(),
+    valid_until: v.string(),
+    alarm_days: v.number(),
+    file_storage_id: v.optional(v.id("_storage")),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...rest } = args;
+    const existing = await ctx.db.get(id);
+    if (!existing) throw new Error("Document not found");
+    let file_url = existing.file_url;
+    let file_storage_id = existing.file_storage_id;
+    if (args.file_storage_id && args.file_storage_id !== existing.file_storage_id) {
+      if (existing.file_storage_id) {
+        await ctx.storage.delete(existing.file_storage_id);
+      }
+      file_storage_id = args.file_storage_id;
+      file_url = (await ctx.storage.getUrl(args.file_storage_id)) ?? undefined;
+    }
+    await ctx.db.patch(id, {
+      ...rest,
+      file_url,
+      file_storage_id,
+    });
+  },
+});
+
+
 // ════════════════════════════════════════════════════════════════
 // DOZVOLLAT
 // ════════════════════════════════════════════════════════════════
@@ -159,3 +224,35 @@ export const deleteDozvoll = mutation({
     await ctx.db.delete(id);
   },
 });
+
+export const updateDozvoll = mutation({
+  args: {
+    id: v.id("dozvollat"),
+    document_type: v.string(),
+    label: v.string(),
+    valid_until: v.string(),
+    alarm_days: v.number(),
+    file_storage_id: v.optional(v.id("_storage")),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...rest } = args;
+    const existing = await ctx.db.get(id);
+    if (!existing) throw new Error("Document not found");
+    let file_url = existing.file_url;
+    let file_storage_id = existing.file_storage_id;
+    if (args.file_storage_id && args.file_storage_id !== existing.file_storage_id) {
+      if (existing.file_storage_id) {
+        await ctx.storage.delete(existing.file_storage_id);
+      }
+      file_storage_id = args.file_storage_id;
+      file_url = (await ctx.storage.getUrl(args.file_storage_id)) ?? undefined;
+    }
+    await ctx.db.patch(id, {
+      ...rest,
+      file_url,
+      file_storage_id,
+    });
+  },
+});
+

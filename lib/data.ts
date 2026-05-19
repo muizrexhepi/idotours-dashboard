@@ -8,6 +8,9 @@ import {
   Settings,
   KanbanIcon,
   FileText,
+  Ticket,
+  Map,
+  MapPin,
 } from "lucide-react";
 
 export const NAV_LINKS = [
@@ -48,6 +51,21 @@ export const NAV_LINKS = [
         title: "Rezervimet",
         href: "/reports/bookings",
         icon: Users,
+      },
+      {
+        title: "Krijo Biletat",
+        href: "/create-tickets",
+        icon: Ticket,
+      },
+      {
+        title: "Krijo Linjat",
+        href: "/create-routes",
+        icon: Map,
+      },
+      {
+        title: "Krijo Stacionet",
+        href: "/create-stations",
+        icon: MapPin,
       },
       {
         title: "Dokumentet",
