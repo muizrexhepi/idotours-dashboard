@@ -184,7 +184,7 @@ export default function CreateRoutesPage() {
 
   const handleToggleStatus = async (route: Route) => {
     try {
-      const isBookable = route?.metadata?.bookable !== false;
+      const isBookable = (route?.metadata as any)?.bookable !== false;
       const endpoint = isBookable
         ? `/route/disable/${route._id}`
         : `/route/enable/${route._id}`;
@@ -460,7 +460,7 @@ export default function CreateRoutesPage() {
                     </tr>
                   ) : filteredRoutes.length > 0 ? (
                     filteredRoutes.map((route) => {
-                      const isBookable = route.metadata?.bookable !== false;
+                      const isBookable = (route.metadata as any)?.bookable !== false;
                       return (
                         <tr key={route._id} className="hover:bg-gray-50/50 transition-colors">
                           <td className="py-4 px-6">
