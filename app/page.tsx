@@ -51,7 +51,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user?._id) return;
-
     const load = async () => {
       const [analytics, bookings] = await Promise.all([
         getOperatorAnalytics(user._id),
