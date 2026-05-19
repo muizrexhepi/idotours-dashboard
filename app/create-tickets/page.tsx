@@ -389,7 +389,7 @@ export default function CreateTickets() {
     if (fromStations.find((x) => x._id === s._id)) return;
     setFromStations((p) => [...p, s]);
     setMatrix((prev) => {
-      const next = { ...prev, [s._id!]: {} };
+      const next: MatrixData = { ...prev, [s._id!]: {} };
       toStations.forEach((t) => {
         next[s._id!][t._id!] = emptyCell();
       });

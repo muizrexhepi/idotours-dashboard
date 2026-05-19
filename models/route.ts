@@ -26,5 +26,6 @@ export interface Route {
     generate_tickets_automatically: boolean;
     metadata: {
         sold: number;
+        bookable?: boolean;
     },
 }
