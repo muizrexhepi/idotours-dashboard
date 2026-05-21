@@ -72,7 +72,7 @@ export default function Dashboard() {
 
     load();
   }, [user]);
-
+ 
   const calculateTimePassed = (booking: Booking) => {
     try {
       const d = moment.duration(
