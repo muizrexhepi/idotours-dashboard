@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/user";
 import { useToast } from "@/components/ui/use-toast";
@@ -41,7 +41,6 @@ import {
 } from "@/components/ui/command";
 
 import {
-  UserPlus,
   Trash2,
   CalendarIcon,
   Search,
@@ -73,13 +72,23 @@ interface ITicketOption {
   destination?: { from: string; to: string };
   // Backend populates stops.from / stops.to
   stops?: {
-    from?: { _id: string; name: string };
-    to?: { _id: string; name: string };
+    from?: IStationOption;
+    to?: IStationOption;
     price?: number;
     children_price?: number;
   }[];
   price?: number;
 }
+
+interface IStationOption {
+  _id: string;
+  name: string;
+  city?: string;
+  country?: string;
+  code?: string;
+}
+
+type IStopOption = NonNullable<ITicketOption["stops"]>[number];
 
 interface IRouteOption {
   _id: string;
@@ -133,27 +142,106 @@ const getAgeOnDate = (birthdate?: string, travelDate = new Date()) => {
   return age;
 };
 
-const getTicketStop = (ticket: ITicketOption | null) => ticket?.stops?.[0];
+const getStationId = (station?: IStationOption) => station?._id ?? "";
 
-const getTicketAdultPrice = (ticket: ITicketOption | null) => {
-  const price = Number(getTicketStop(ticket)?.price ?? ticket?.price ?? 0);
+const getStationLabel = (station?: IStationOption) =>
+  [station?.city, station?.name].filter(Boolean).join(" - ") ||
+  station?.name ||
+  "";
+
+const getStationMeta = (station?: IStationOption) =>
+  [station?.country, station?.code].filter(Boolean).join(" / ");
+
+const getUniqueStations = (stations: (IStationOption | undefined)[]) => {
+  const seen = new Set<string>();
+  return stations.filter((station): station is IStationOption => {
+    const id = getStationId(station);
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+};
+
+const getStartCountry = (ticket: ITicketOption | null) =>
+  ticket?.stops?.find((stop) => stop.from?.country)?.from?.country ?? "";
+
+const getStartStations = (ticket: ITicketOption | null) => {
+  const startCountry = getStartCountry(ticket);
+  const stops = ticket?.stops ?? [];
+  const startStops = startCountry
+    ? stops.filter((stop) => stop.from?.country === startCountry)
+    : stops;
+
+  return getUniqueStations(startStops.map((stop) => stop.from));
+};
+
+const getArrivalStations = (
+  ticket: ITicketOption | null,
+  departureStationId?: string,
+) => {
+  const startCountry = getStartCountry(ticket);
+  const matchingDepartureStops = (ticket?.stops ?? []).filter((stop) => {
+    const matchesDeparture =
+      !departureStationId || getStationId(stop.from) === departureStationId;
+    return matchesDeparture;
+  });
+  const arrivalStops = startCountry
+    ? matchingDepartureStops.filter((stop) => stop.to?.country !== startCountry)
+    : matchingDepartureStops;
+
+  return getUniqueStations(
+    (arrivalStops.length ? arrivalStops : matchingDepartureStops).map(
+      (stop) => stop.to,
+    ),
+  );
+};
+
+const getSelectedStop = (
+  ticket: ITicketOption | null,
+  departureStationId?: string,
+  arrivalStationId?: string,
+) => {
+  if (!ticket?.stops?.length) return undefined;
+  if (!departureStationId && !arrivalStationId) return ticket.stops[0];
+
+  return ticket.stops.find((stop) => {
+    const matchesDeparture =
+      !departureStationId || getStationId(stop.from) === departureStationId;
+    const matchesArrival =
+      !arrivalStationId || getStationId(stop.to) === arrivalStationId;
+
+    return matchesDeparture && matchesArrival;
+  });
+};
+
+const getTicketAdultPrice = (
+  ticket: ITicketOption | null,
+  stop?: IStopOption,
+) => {
+  const price = Number(stop?.price ?? ticket?.price ?? 0);
   return Number.isFinite(price) ? price : 0;
 };
 
-const getTicketChildrenPrice = (ticket: ITicketOption | null) => {
-  const childPrice = Number(getTicketStop(ticket)?.children_price);
-  return Number.isFinite(childPrice) ? childPrice : getTicketAdultPrice(ticket);
+const getTicketChildrenPrice = (
+  ticket: ITicketOption | null,
+  stop?: IStopOption,
+) => {
+  const childPrice = Number(stop?.children_price);
+  return Number.isFinite(childPrice)
+    ? childPrice
+    : getTicketAdultPrice(ticket, stop);
 };
 
 const getPassengerTicketPrice = (
   passenger: IManualPassenger,
   ticket: ITicketOption | null,
+  stop?: IStopOption,
   travelDate?: Date,
 ) => {
   const age = getAgeOnDate(passenger.birthdate, travelDate ?? new Date());
   return age !== null && age < 10
-    ? getTicketChildrenPrice(ticket)
-    : getTicketAdultPrice(ticket);
+    ? getTicketChildrenPrice(ticket, stop)
+    : getTicketAdultPrice(ticket, stop);
 };
 
 // ─── Step indicator ───────────────────────────────────────────────
@@ -187,6 +275,10 @@ export default function CreateManualBookingPage() {
   const [selectedTicket, setSelectedTicket] = useState<ITicketOption | null>(
     null,
   );
+  const [stopPickerOpen, setStopPickerOpen] = useState(false);
+  const [selectedDepartureStationId, setSelectedDepartureStationId] =
+    useState("");
+  const [selectedArrivalStationId, setSelectedArrivalStationId] = useState("");
 
   // Step 2 — passengers
   const [passengers, setPassengers] = useState<IManualPassenger[]>([
@@ -226,6 +318,9 @@ export default function CreateManualBookingPage() {
     if (!selectedRoute?._id || !departureDate) return;
     setLoadingTickets(true);
     setSelectedTicket(null);
+    setSelectedDepartureStationId("");
+    setSelectedArrivalStationId("");
+    setStopPickerOpen(false);
     setTickets([]);
     try {
       // Backend expects DD-MM-YYYY and route_number = route _id
@@ -250,16 +345,79 @@ export default function CreateManualBookingPage() {
     fetchTickets();
   }, [fetchTickets]);
 
+  const startStations = useMemo(
+    () => getStartStations(selectedTicket),
+    [selectedTicket],
+  );
+
+  const arrivalStations = useMemo(
+    () => getArrivalStations(selectedTicket, selectedDepartureStationId),
+    [selectedTicket, selectedDepartureStationId],
+  );
+
+  const selectedStop = useMemo(
+    () =>
+      getSelectedStop(
+        selectedTicket,
+        selectedDepartureStationId,
+        selectedArrivalStationId,
+      ),
+    [selectedTicket, selectedDepartureStationId, selectedArrivalStationId],
+  );
+
+  const selectedDepartureStation = selectedStop?.from;
+  const selectedArrivalStation = selectedStop?.to;
+  const selectedAdultPrice = getTicketAdultPrice(selectedTicket, selectedStop);
+  const selectedChildPrice = getTicketChildrenPrice(selectedTicket, selectedStop);
+  const selectedHasChildrenPrice = selectedStop?.children_price != null;
+
+  useEffect(() => {
+    if (!selectedTicket) return;
+
+    const firstDeparture = getStartStations(selectedTicket)[0];
+    const firstArrival = getArrivalStations(
+      selectedTicket,
+      getStationId(firstDeparture),
+    )[0];
+
+    setSelectedDepartureStationId(getStationId(firstDeparture));
+    setSelectedArrivalStationId(getStationId(firstArrival));
+    setStopPickerOpen(false);
+  }, [selectedTicket]);
+
+  useEffect(() => {
+    if (!selectedTicket || !selectedDepartureStationId) return;
+    if (
+      arrivalStations.some(
+        (station) => getStationId(station) === selectedArrivalStationId,
+      )
+    ) {
+      return;
+    }
+
+    setSelectedArrivalStationId(getStationId(arrivalStations[0]));
+  }, [
+    arrivalStations,
+    selectedArrivalStationId,
+    selectedDepartureStationId,
+    selectedTicket,
+  ]);
+
   useEffect(() => {
     if (!selectedTicket) return;
 
     setPassengers((prev) =>
       prev.map((p) => ({
         ...p,
-        price: getPassengerTicketPrice(p, selectedTicket, departureDate),
+        price: getPassengerTicketPrice(
+          p,
+          selectedTicket,
+          selectedStop,
+          departureDate,
+        ),
       })),
     );
-  }, [selectedTicket, departureDate]);
+  }, [selectedTicket, selectedStop, departureDate]);
 
   // ─── Passenger helpers ──────────────────────────────────────────
   const addPassenger = () => {
@@ -270,6 +428,7 @@ export default function CreateManualBookingPage() {
         price: getPassengerTicketPrice(
           EMPTY_PASSENGER,
           selectedTicket,
+          selectedStop,
           departureDate,
         ),
       },
@@ -294,6 +453,7 @@ export default function CreateManualBookingPage() {
           nextPassenger.price = getPassengerTicketPrice(
             nextPassenger,
             selectedTicket,
+            selectedStop,
             departureDate,
           );
         }
@@ -309,21 +469,23 @@ export default function CreateManualBookingPage() {
   );
 
   // ─── Validation ─────────────────────────────────────────────────
-  const step1Valid = !!selectedTicket;
+  const step1Valid = !!selectedTicket && !!selectedStop;
   const step2Valid = passengers.every((p) => p.full_name.trim().length >= 2);
 
   // ─── Submit ─────────────────────────────────────────────────────
   const handleSubmit = async () => {
-    if (!selectedTicket || !departureDate || !user?._id) return;
+    if (!selectedTicket || !selectedStop || !departureDate || !user?._id) return;
     setIsSubmitting(true);
 
-    const depStation = selectedTicket.stops?.[0]?.from;
-    const arrStation = selectedTicket.stops?.[0]?.to;
+    const depStation = selectedStop.from;
+    const arrStation = selectedStop.to;
     const fromCity =
+      depStation?.city ??
       selectedTicket.route_number?.destination?.from ??
       selectedTicket.destination?.from ??
       "";
     const toCity =
+      arrStation?.city ??
       selectedTicket.route_number?.destination?.to ??
       selectedTicket.destination?.to ??
       "";
@@ -358,10 +520,12 @@ export default function CreateManualBookingPage() {
   };
 
   const fromCity =
+    selectedDepartureStation?.city ??
     selectedTicket?.route_number?.destination?.from ??
     selectedTicket?.destination?.from ??
     "";
   const toCity =
+    selectedArrivalStation?.city ??
     selectedTicket?.route_number?.destination?.to ??
     selectedTicket?.destination?.to ??
     "";
@@ -573,18 +737,17 @@ export default function CreateManualBookingPage() {
                 ) : (
                   tickets.map((ticket) => {
                     const isSelected = selectedTicket?._id === ticket._id;
-                    const depStation = ticket.stops?.[0]?.from?.name;
-                    const arrStation = ticket.stops?.[0]?.to?.name;
+                    const firstStop = getSelectedStop(ticket);
+                    const depStation = firstStop?.from?.name;
                     const from =
                       ticket.route_number?.destination?.from ??
                       ticket.destination?.from;
                     const to =
                       ticket.route_number?.destination?.to ??
                       ticket.destination?.to;
-                    const adultPrice = getTicketAdultPrice(ticket);
-                    const childPrice = getTicketChildrenPrice(ticket);
-                    const hasChildrenPrice =
-                      getTicketStop(ticket)?.children_price != null;
+                    const adultPrice = getTicketAdultPrice(ticket, firstStop);
+                    const childPrice = getTicketChildrenPrice(ticket, firstStop);
+                    const hasChildrenPrice = firstStop?.children_price != null;
 
                     return (
                       <button
@@ -661,6 +824,179 @@ export default function CreateManualBookingPage() {
               </div>
             )}
 
+            {selectedTicket && (
+              <Card className="border-gray-200 shadow-sm bg-white overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        <MapPin className="h-3.5 w-3.5" />
+                        Nisja dhe mberritja
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {getStationLabel(selectedDepartureStation) ||
+                            "Zgjidh nisjen"}
+                        </span>
+                        <ArrowRight className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm font-semibold text-gray-900">
+                          {getStationLabel(selectedArrivalStation) ||
+                            "Zgjidh mberritjen"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-base font-bold text-gray-900">
+                          €{selectedAdultPrice}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {selectedHasChildrenPrice
+                            ? `femije €${selectedChildPrice}`
+                            : "per person"}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setStopPickerOpen((open) => !open)}
+                        className="h-9 border-gray-300 text-gray-700"
+                      >
+                        Ndrysho nisjet
+                      </Button>
+                    </div>
+                  </div>
+
+                  {stopPickerOpen && (
+                    <div className="border-t border-gray-100 bg-gray-50/70 p-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="flex flex-col gap-2">
+                          <div>
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                              Stacioni i nisjes
+                            </Label>
+                            <p className="mt-0.5 text-xs text-gray-400">
+                              Vetem stacionet nga shteti i pare i linjes.
+                            </p>
+                          </div>
+                          <div className="grid gap-2">
+                            {startStations.map((station) => {
+                              const isActive =
+                                selectedDepartureStationId === getStationId(station);
+                              return (
+                                <button
+                                  key={station._id}
+                                  type="button"
+                                  onClick={() => {
+                                    const stationId = getStationId(station);
+                                    const firstArrival = getArrivalStations(
+                                      selectedTicket,
+                                      stationId,
+                                    )[0];
+                                    setSelectedDepartureStationId(stationId);
+                                    setSelectedArrivalStationId(
+                                      getStationId(firstArrival),
+                                    );
+                                  }}
+                                  className={cn(
+                                    "w-full rounded-lg border p-3 text-left transition-all",
+                                    isActive
+                                      ? "border-gray-900 bg-white shadow-sm"
+                                      : "border-gray-200 bg-white hover:border-gray-300",
+                                  )}
+                                >
+                                  <div className="text-sm font-semibold text-gray-900">
+                                    {getStationLabel(station)}
+                                  </div>
+                                  {getStationMeta(station) && (
+                                    <div className="mt-0.5 text-xs text-gray-500">
+                                      {getStationMeta(station)}
+                                    </div>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <div>
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                              Stacioni i mberritjes
+                            </Label>
+                            <p className="mt-0.5 text-xs text-gray-400">
+                              Stacionet tjera te disponueshme per kete nisje.
+                            </p>
+                          </div>
+                          <div className="grid gap-2">
+                            {arrivalStations.length === 0 ? (
+                              <div className="rounded-lg border border-dashed border-gray-200 bg-white p-4 text-sm text-gray-500">
+                                Nuk ka mberritje per kete stacion.
+                              </div>
+                            ) : (
+                              arrivalStations.map((station) => {
+                                const stop = getSelectedStop(
+                                  selectedTicket,
+                                  selectedDepartureStationId,
+                                  getStationId(station),
+                                );
+                                const isActive =
+                                  selectedArrivalStationId === getStationId(station);
+                                return (
+                                  <button
+                                    key={station._id}
+                                    type="button"
+                                    onClick={() =>
+                                      setSelectedArrivalStationId(
+                                        getStationId(station),
+                                      )
+                                    }
+                                    className={cn(
+                                      "w-full rounded-lg border p-3 text-left transition-all",
+                                      isActive
+                                        ? "border-gray-900 bg-white shadow-sm"
+                                        : "border-gray-200 bg-white hover:border-gray-300",
+                                    )}
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div>
+                                        <div className="text-sm font-semibold text-gray-900">
+                                          {getStationLabel(station)}
+                                        </div>
+                                        {getStationMeta(station) && (
+                                          <div className="mt-0.5 text-xs text-gray-500">
+                                            {getStationMeta(station)}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="shrink-0 text-right">
+                                        <div className="text-sm font-bold text-gray-900">
+                                          €{getTicketAdultPrice(selectedTicket, stop)}
+                                        </div>
+                                        {stop?.children_price != null && (
+                                          <div className="text-xs text-gray-500">
+                                            femije €
+                                            {getTicketChildrenPrice(
+                                              selectedTicket,
+                                              stop,
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <div className="flex justify-end pt-2">
               <Button
                 onClick={() => setStep(2)}
@@ -684,6 +1020,15 @@ export default function CreateManualBookingPage() {
                   <span className="font-semibold">
                     {fromCity} → {toCity}
                   </span>
+                  {selectedDepartureStation && selectedArrivalStation && (
+                    <>
+                      <span className="opacity-60 mx-2">•</span>
+                      <span className="opacity-80">
+                        {selectedDepartureStation.name} →{" "}
+                        {selectedArrivalStation.name}
+                      </span>
+                    </>
+                  )}
                   <span className="opacity-60 mx-2">•</span>
                   <span className="opacity-80">{selectedTicket.time}</span>
                   <span className="opacity-60 mx-2">•</span>
@@ -692,10 +1037,13 @@ export default function CreateManualBookingPage() {
                   </span>
                 </div>
                 <button
-                  onClick={() => setStep(1)}
+                  onClick={() => {
+                    setStep(1);
+                    setStopPickerOpen(true);
+                  }}
                   className="text-xs opacity-60 hover:opacity-100 underline"
                 >
-                  Ndrysho
+                  Ndrysho nisjet
                 </button>
               </div>
             )}
@@ -885,6 +1233,13 @@ export default function CreateManualBookingPage() {
                         <Clock className="h-3.5 w-3.5" />
                         {selectedTicket?.time}
                       </span>
+                      {selectedDepartureStation && selectedArrivalStation && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {selectedDepartureStation.name} →{" "}
+                          {selectedArrivalStation.name}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
