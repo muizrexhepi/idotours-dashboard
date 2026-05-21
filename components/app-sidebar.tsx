@@ -20,9 +20,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { ChevronUp, Palette, User2, Circle } from "lucide-react";
+import { ChevronUp, User2, Circle } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { useUser } from "@/context/user";
 import { usePathname } from "next/navigation";
 import { Badge } from "./ui/badge";
@@ -41,29 +40,43 @@ export function AppSidebar() {
   const urgentMessages = 1;
 
   return (
-    <Sidebar collapsible="icon" className="border-r" variant="sidebar">
-      <SidebarContent className="bg-background">
+    <Sidebar
+      collapsible="icon"
+      className="border-r border-sidebar-border bg-sidebar"
+      variant="sidebar"
+    >
+      <SidebarContent className="bg-sidebar">
         {/* Logo Section */}
-        <div className="flex items-center justify-center px-4 pt-6 pb-4">
-          <Link href="/" className="flex items-center">
+        <div className="flex items-center justify-center px-4 pb-4 pt-6">
+          <Link href="/" className="flex items-center gap-3">
             {state === "expanded" ? (
-              <Image
-                src={`/logo.png`}
-                alt="Gobusly Logo"
-                className="h-12 w-auto"
-                width={180}
-                height={60}
-              />
-            ) : null}
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground shadow-sm">
+                  ID
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-sidebar-foreground">
+                    IdoTours
+                  </p>
+                  <p className="truncate text-xs text-sidebar-foreground/55">
+                    Operator Console
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
+                ID
+              </div>
+            )}
           </Link>
         </div>
 
         {/* Status Indicator for Expanded Sidebar */}
         {state === "expanded" && (
           <div className="px-4 pb-4">
-            <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-              <Circle className="size-2 fill-green-500 text-green-500" />
-              <span className="text-xs font-medium text-green-700 dark:text-green-400">
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-3">
+              <Circle className="size-2 fill-emerald-400 text-emerald-400" />
+              <span className="text-xs font-medium text-emerald-100">
                 Sistemi Aktiv
               </span>
             </div>
@@ -75,7 +88,7 @@ export function AppSidebar() {
           {NAV_LINKS.map((link, index) => (
             <SidebarGroup key={index}>
               {state === "expanded" && (
-                <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-wide text-sidebar-foreground/42">
                   {link.title}
                 </SidebarGroupLabel>
               )}
@@ -97,8 +110,8 @@ export function AppSidebar() {
                           }
                           className={`w-full transition-colors ${
                             isActive
-                              ? "bg-primary/10 text-primary border-r-2 border-primary"
-                              : "hover:bg-accent hover:text-accent-foreground"
+                              ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                              : "text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                           }`}
                         >
                           <Link
@@ -107,7 +120,7 @@ export function AppSidebar() {
                           >
                             <item.icon
                               className={`size-4 flex-shrink-0 ${
-                                isActive ? "text-primary" : ""
+                                isActive ? "text-sidebar-primary-foreground" : ""
                               }`}
                             />
                             {state === "expanded" && (
@@ -141,7 +154,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       {/* User Menu Footer */}
-      <SidebarFooter className="bg-background border-t">
+      <SidebarFooter className="border-t border-sidebar-border bg-sidebar">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
@@ -149,13 +162,13 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   size="lg"
                   tooltip={state === "collapsed" ? user?.name : undefined}
-                  className="w-full hover:bg-accent"
+                  className="w-full text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 >
                   <div className="flex items-center gap-3 w-full">
-                    <div className="flex items-center justify-center size-8 rounded-full bg-primary/10 flex-shrink-0 relative">
-                      <User2 className="size-4 text-primary" />
+                    <div className="relative flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-sidebar-accent">
+                      <User2 className="size-4 text-sidebar-foreground" />
                       {/* Online status indicator */}
-                      <div className="absolute -bottom-1 -right-1 size-3 bg-green-500 rounded-full border-2 border-background"></div>
+                      <div className="absolute -bottom-1 -right-1 size-3 rounded-full border-2 border-sidebar bg-emerald-400"></div>
                     </div>
                     {state === "expanded" && user && (
                       <div className="flex flex-col items-start min-w-0 flex-1">

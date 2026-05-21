@@ -27,7 +27,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className="h-full">
-      <body className={`${inter.className} h-full bg-gray-50`}>
+      <body className={`${inter.className} h-full bg-background`}>
         {/*
           RootLayoutClient checks the current path:
           - /agency/* routes → renders children directly (no UserProvider, no DashboardLayout)

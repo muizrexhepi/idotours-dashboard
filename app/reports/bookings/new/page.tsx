@@ -75,6 +75,8 @@ interface ITicketOption {
   stops?: {
     from?: { _id: string; name: string };
     to?: { _id: string; name: string };
+    price?: number;
+    children_price?: number;
   }[];
   price?: number;
 }
@@ -91,6 +93,67 @@ const EMPTY_PASSENGER: IManualPassenger = {
   email: "",
   price: 0,
   birthdate: "",
+};
+
+const parseBirthdate = (value?: string) => {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  const localMatch = trimmed.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/);
+  const year = isoMatch ? Number(isoMatch[1]) : Number(localMatch?.[3]);
+  const month = isoMatch ? Number(isoMatch[2]) : Number(localMatch?.[2]);
+  const day = isoMatch ? Number(isoMatch[3]) : Number(localMatch?.[1]);
+
+  if (!year || !month || !day) return null;
+
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+};
+
+const getAgeOnDate = (birthdate?: string, travelDate = new Date()) => {
+  const parsed = parseBirthdate(birthdate);
+  if (!parsed) return null;
+
+  let age = travelDate.getFullYear() - parsed.getFullYear();
+  const hasBirthdayPassed =
+    travelDate.getMonth() > parsed.getMonth() ||
+    (travelDate.getMonth() === parsed.getMonth() &&
+      travelDate.getDate() >= parsed.getDate());
+
+  if (!hasBirthdayPassed) age -= 1;
+  return age;
+};
+
+const getTicketStop = (ticket: ITicketOption | null) => ticket?.stops?.[0];
+
+const getTicketAdultPrice = (ticket: ITicketOption | null) => {
+  const price = Number(getTicketStop(ticket)?.price ?? ticket?.price ?? 0);
+  return Number.isFinite(price) ? price : 0;
+};
+
+const getTicketChildrenPrice = (ticket: ITicketOption | null) => {
+  const childPrice = Number(getTicketStop(ticket)?.children_price);
+  return Number.isFinite(childPrice) ? childPrice : getTicketAdultPrice(ticket);
+};
+
+const getPassengerTicketPrice = (
+  passenger: IManualPassenger,
+  ticket: ITicketOption | null,
+  travelDate?: Date,
+) => {
+  const age = getAgeOnDate(passenger.birthdate, travelDate ?? new Date());
+  return age !== null && age < 10
+    ? getTicketChildrenPrice(ticket)
+    : getTicketAdultPrice(ticket);
 };
 
 // ─── Step indicator ───────────────────────────────────────────────
@@ -187,11 +250,29 @@ export default function CreateManualBookingPage() {
     fetchTickets();
   }, [fetchTickets]);
 
+  useEffect(() => {
+    if (!selectedTicket) return;
+
+    setPassengers((prev) =>
+      prev.map((p) => ({
+        ...p,
+        price: getPassengerTicketPrice(p, selectedTicket, departureDate),
+      })),
+    );
+  }, [selectedTicket, departureDate]);
+
   // ─── Passenger helpers ──────────────────────────────────────────
   const addPassenger = () => {
     setPassengers((prev) => [
       ...prev,
-      { ...EMPTY_PASSENGER, price: prev[0]?.price ?? 0 },
+      {
+        ...EMPTY_PASSENGER,
+        price: getPassengerTicketPrice(
+          EMPTY_PASSENGER,
+          selectedTicket,
+          departureDate,
+        ),
+      },
     ]);
   };
 
@@ -205,7 +286,20 @@ export default function CreateManualBookingPage() {
     value: string | number,
   ) => {
     setPassengers((prev) =>
-      prev.map((p, i) => (i === idx ? { ...p, [field]: value } : p)),
+      prev.map((p, i) => {
+        if (i !== idx) return p;
+
+        const nextPassenger = { ...p, [field]: value };
+        if (field === "birthdate") {
+          nextPassenger.price = getPassengerTicketPrice(
+            nextPassenger,
+            selectedTicket,
+            departureDate,
+          );
+        }
+
+        return nextPassenger;
+      }),
     );
   };
 
@@ -487,6 +581,10 @@ export default function CreateManualBookingPage() {
                     const to =
                       ticket.route_number?.destination?.to ??
                       ticket.destination?.to;
+                    const adultPrice = getTicketAdultPrice(ticket);
+                    const childPrice = getTicketChildrenPrice(ticket);
+                    const hasChildrenPrice =
+                      getTicketStop(ticket)?.children_price != null;
 
                     return (
                       <button
@@ -542,16 +640,19 @@ export default function CreateManualBookingPage() {
                             </div>
                           </div>
 
-                          {ticket.price != null && (
-                            <div className="text-right">
-                              <span className="text-lg font-bold text-gray-900">
-                                €{ticket.price}
-                              </span>
-                              <div className="text-xs text-gray-400">
-                                per person
-                              </div>
+                          <div className="text-right">
+                            <span className="text-lg font-bold text-gray-900">
+                              €{adultPrice}
+                            </span>
+                            <div className="text-xs text-gray-400">
+                              per person
                             </div>
-                          )}
+                            {hasChildrenPrice && (
+                              <div className="text-xs text-gray-500">
+                                femije €{childPrice}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </button>
                     );
