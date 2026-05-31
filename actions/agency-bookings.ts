@@ -23,6 +23,7 @@ export interface IAgencyBookingPayload {
   arrival_station_label: string;
   location?: any;
   language?: string;
+  is_paid?: boolean;
 }
 
 export const createAgencyBooking = async (

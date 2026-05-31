@@ -105,7 +105,7 @@ const EMPTY_FORM: ICreateAgencyPayload = {
   address: { city: "", country: "", street: "" },
   contact: { phone: "", contact_email: "" },
   financial_data: { percentage: 10 },
-  company_metadata: { name: "", vat: "" },
+  company_metadata: { name: "", vat: "", logo: "" },
 };
 
 function Field({
@@ -377,6 +377,18 @@ function AgencyFormFields({
             onChange={(e) =>
               setField(
                 "company_metadata.vat",
+                (e.target as HTMLInputElement).value,
+              )
+            }
+          />
+          <Field
+            id="agency_logo"
+            label="Logo URL"
+            placeholder="https://example.com/logo.png"
+            value={form.company_metadata?.logo ?? ""}
+            onChange={(e) =>
+              setField(
+                "company_metadata.logo",
                 (e.target as HTMLInputElement).value,
               )
             }
@@ -724,8 +736,8 @@ export default function AgencyPage() {
               Raporti Mujor i Borxhit
             </CardTitle>
             <CardDescription>
-              Kliko "Shëno si Paguar" per te shlyer borxhin e muajit — fatura
-              printohet automatikisht
+              Kliko &quot;Shëno si Paguar&quot; per te shlyer borxhin e muajit
+              — fatura printohet automatikisht
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -1227,7 +1239,7 @@ export default function AgencyPage() {
             <AlertDialogDescription className="text-gray-500">
               Je i sigurt qe deshiron te fshish agjencine{" "}
               <span className="font-semibold text-gray-900">
-                "{deleteTarget?.name}"
+                &quot;{deleteTarget?.name}&quot;
               </span>
               ? Ky veprim nuk mund te zhbehet.
             </AlertDialogDescription>

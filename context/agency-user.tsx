@@ -5,10 +5,12 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import type { Agency } from "@/models/agency";
+import { getAgencyById } from "@/actions/agency";
 
 interface AgencyUserContextType {
   agency: Agency | null;
@@ -52,7 +54,7 @@ export const AgencyUserProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const getAgency = async () => {
+  const getAgency = useCallback(async () => {
     try {
       const token = localStorage.getItem("agencyAuthToken");
 
@@ -75,7 +77,11 @@ export const AgencyUserProvider = ({ children }: { children: ReactNode }) => {
         return router.push("/agency/login");
       }
 
-      setAgency(decoded.data);
+      const freshAgency = decoded.data._id
+        ? await getAgencyById(decoded.data._id)
+        : null;
+
+      setAgency(freshAgency ?? decoded.data);
       setError(null);
     } catch (err: any) {
       console.error("Agency auth error:", err);
@@ -85,7 +91,7 @@ export const AgencyUserProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   const logout = () => {
     localStorage.removeItem("agencyAuthToken");
@@ -98,11 +104,11 @@ export const AgencyUserProvider = ({ children }: { children: ReactNode }) => {
     window.addEventListener("agencyUserChange", handleAgencyChange);
     return () =>
       window.removeEventListener("agencyUserChange", handleAgencyChange);
-  }, []);
+  }, [getAgency]);
 
   useEffect(() => {
     getAgency();
-  }, []);
+  }, [getAgency]);
 
   return (
     <AgencyUserContext.Provider

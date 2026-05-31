@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAgencyUser } from "@/context/agency-user";
 import { getAgencyBookings } from "@/actions/agency-bookings";
 import type { Booking } from "@/models/booking";
@@ -36,6 +37,7 @@ const ITEMS_PER_PAGE = 10;
 
 export default function AgencyBookingsPage() {
   const { agency } = useAgencyUser();
+  const router = useRouter();
   const printRef = useRef<HTMLDivElement>(null);
 
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -257,7 +259,10 @@ export default function AgencyBookingsPage() {
                     {filtered.map((booking, i) => (
                       <TableRow
                         key={booking._id}
-                        className="border-gray-100 hover:bg-gray-50/50 transition-colors"
+                        onClick={() =>
+                          router.push(`/agency/bookings/${booking._id}`)
+                        }
+                        className="cursor-pointer border-gray-100 hover:bg-gray-50/50 transition-colors"
                       >
                         <TableCell className="text-xs text-gray-400 py-3.5">
                           {(page - 1) * ITEMS_PER_PAGE + i + 1}

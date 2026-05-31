@@ -39,6 +39,7 @@ export interface CompanyMetadata {
     email: string;
     phone: string;
     country: string;
+    logo?: string;
     bank_details: {
         swift: string;
         iban: string;

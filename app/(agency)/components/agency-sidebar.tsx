@@ -58,16 +58,16 @@ export default function AgencySidebar({
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="border-b border-sidebar-border p-5">
+      <div className="border-b border-slate-800 p-5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary">
-            <Building2 className="h-4 w-4 text-sidebar-primary-foreground" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-400">
+            <Building2 className="h-4 w-4 text-slate-950" />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-sidebar-foreground">
+            <p className="truncate text-sm font-bold text-slate-50">
               {agency?.name || "Agency Portal"}
             </p>
-            <p className="truncate text-xs text-sidebar-foreground/50">
+            <p className="truncate text-xs text-slate-400">
               {agency?.email}
             </p>
           </div>
@@ -88,8 +88,8 @@ export default function AgencySidebar({
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                 isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  ? "bg-teal-400 text-slate-950"
+                  : "text-slate-200 hover:bg-slate-800 hover:text-white",
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
@@ -101,21 +101,21 @@ export default function AgencySidebar({
       </nav>
 
       {/* Agency info + logout */}
-      <div className="space-y-3 border-t border-sidebar-border p-4">
+      <div className="space-y-3 border-t border-slate-800 p-4">
         {agency?.financial_data && (
-          <div className="space-y-1.5 rounded-lg border border-sidebar-border bg-sidebar-accent/45 px-3 py-2.5">
-            <p className="text-xs font-medium uppercase tracking-wider text-sidebar-foreground/50">
+          <div className="space-y-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
               Financat
             </p>
             <div className="flex justify-between text-xs">
-              <span className="text-sidebar-foreground/58">Komisioni</span>
-              <span className="font-semibold text-sidebar-foreground">
+              <span className="text-slate-400">Komisioni</span>
+              <span className="font-semibold text-slate-100">
                 {agency.financial_data.percentage}%
               </span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-sidebar-foreground/58">Borxhi</span>
-              <span className="font-semibold text-orange-300">
+              <span className="text-slate-400">Borxhi</span>
+              <span className="font-semibold text-amber-300">
                 €{(agency.financial_data.debt ?? 0).toFixed(2)}
               </span>
             </div>
@@ -125,7 +125,7 @@ export default function AgencySidebar({
           variant="ghost"
           size="sm"
           onClick={logout}
-          className="w-full justify-start gap-2 text-sidebar-foreground/62 hover:bg-red-500/12 hover:text-red-200"
+          className="w-full justify-start gap-2 text-slate-200 hover:bg-red-500/15 hover:text-red-100"
         >
           <LogOut className="h-4 w-4" />
           Dil
@@ -137,7 +137,7 @@ export default function AgencySidebar({
   return (
     <div className="flex h-full">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-950 md:flex">
         <SidebarContent />
       </aside>
 
@@ -152,13 +152,13 @@ export default function AgencySidebar({
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 border-r border-sidebar-border bg-sidebar transition-transform duration-200 md:hidden",
+          "fixed inset-y-0 left-0 z-50 w-64 border-r border-slate-800 bg-slate-950 transition-transform duration-200 md:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="absolute top-4 right-4">
           <button onClick={() => setMobileOpen(false)}>
-            <X className="h-5 w-5 text-sidebar-foreground/70" />
+            <X className="h-5 w-5 text-slate-300" />
           </button>
         </div>
         <SidebarContent />

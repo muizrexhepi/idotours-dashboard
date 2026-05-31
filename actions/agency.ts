@@ -20,6 +20,7 @@ export interface ICreateAgencyPayload {
   company_metadata?: {
     name?: string;
     vat?: string;
+    logo?: string;
   };
 }
 
