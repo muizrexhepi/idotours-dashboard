@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { cookies } from "next/headers";
 import { RootLayoutClient } from "@/context/root-layout-client";
 import { ConvexClientProvider } from "@/providers/convex-provider";
-
+ 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
