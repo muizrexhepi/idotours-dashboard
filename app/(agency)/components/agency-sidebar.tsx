@@ -11,12 +11,14 @@ import {
   PlusCircle,
   Receipt,
   LogOut,
-  Building2,
   Menu,
   X,
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const SIDEBAR_LOGO_URL =
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVk8AqwTpcrd7cLHUX0sn2IeddYU6J00Iw8w&s";
 
 const NAV_ITEMS = [
   {
@@ -60,9 +62,11 @@ export default function AgencySidebar({
       {/* Logo */}
       <div className="border-b border-slate-800 p-5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-400">
-            <Building2 className="h-4 w-4 text-slate-950" />
-          </div>
+          <div
+            className="h-9 w-9 shrink-0 rounded-lg bg-[#ffffff] bg-contain bg-center bg-no-repeat shadow-sm"
+            style={{ backgroundImage: `url(${SIDEBAR_LOGO_URL})` }}
+            aria-hidden="true"
+          />
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-slate-50">
               {agency?.name || "Agency Portal"}
@@ -88,7 +92,7 @@ export default function AgencySidebar({
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                 isActive
-                  ? "bg-teal-400 text-slate-950"
+                  ? "bg-[#ffffff] text-black hover:bg-[#ffffff] hover:text-black"
                   : "text-slate-200 hover:bg-slate-800 hover:text-white",
               )}
             >
@@ -137,7 +141,7 @@ export default function AgencySidebar({
   return (
     <div className="flex h-full">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-950 md:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-800 bg-[#061461] md:flex">
         <SidebarContent />
       </aside>
 
@@ -152,7 +156,7 @@ export default function AgencySidebar({
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 border-r border-slate-800 bg-slate-950 transition-transform duration-200 md:hidden",
+          "fixed inset-y-0 left-0 z-50 w-64 border-r border-slate-800 bg-[#061461] transition-transform duration-200 md:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >

@@ -9,6 +9,7 @@ import axios, { AxiosResponse } from "axios";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { Plus, X, Search, ChevronDown, Send, Bus, Copy, ArrowLeftRight, Trash2, AlertTriangle } from "lucide-react";
 import { useUser } from "@/context/user";
+import { useSearchParams } from "next/navigation";
 
 interface IDayOfWeek {
   key: string;
@@ -35,6 +36,30 @@ interface CellData {
 
 type MatrixData = Record<string, Record<string, CellData>>;
 
+type EditableTicket = {
+  _id: string;
+  route_number: Route | string;
+  destination?: {
+    from?: string;
+    to?: string;
+  };
+  stops: Array<{
+    from: Station | string;
+    to: Station | string;
+    time?: string;
+    price?: number;
+    children_price?: number;
+    max_buying_time?: string;
+    other_prices?: {
+      our_price?: number;
+      our_children_price?: number;
+      return_price?: number;
+    };
+  }>;
+  time?: string;
+  number_of_tickets?: number;
+};
+
 const emptyCell = (): CellData => ({
   price: "",
   our_return_price: "",
@@ -42,6 +67,32 @@ const emptyCell = (): CellData => ({
   time: "",
   duration: "",
 });
+
+const stationId = (station: Station | string | null | undefined) =>
+  typeof station === "string" ? station : station?._id ?? "";
+
+const fallbackStation = (id: string): Station => ({
+  _id: id,
+  name: "Unknown station",
+  city: "",
+  country: "",
+  address: "",
+  code: "",
+  location: {
+    lat: undefined,
+    lng: undefined,
+  },
+});
+
+const normalizeStation = (
+  station: Station | string | null | undefined,
+  allStations: Station[]
+) => {
+  const id = stationId(station);
+  if (!id) return null;
+  if (typeof station === "object" && station?.name) return station;
+  return allStations.find((s) => s._id === id) ?? fallbackStation(id);
+};
 
 const groupByCountry = (stations: Station[]): Record<string, Station[]> => {
   const map: Record<string, Station[]> = {};
@@ -100,7 +151,7 @@ function ConfirmModal({
             <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 mb-1">
               <AlertTriangle className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mt-0.5" />
               <p className="text-[11px] text-blue-800 leading-relaxed">
-                Prices, return prices, child prices and durations will be carried over from the original table. Only the start times will be cleared — you'll need to fill those in for the return journey.
+                Prices, return prices, child prices and durations will be carried over from the original table. Only the start times will be cleared, so you will need to fill those in for the return journey.
               </p>
             </div>
           )}
@@ -359,6 +410,9 @@ function MatrixCell({
 export default function CreateTickets() {
   const { toast } = useToast();
   const { user } = useUser();
+  const searchParams = useSearchParams();
+  const editRouteId = searchParams.get("editRoute") ?? "";
+  const isEditMode = Boolean(editRouteId);
   
   const [allStations, setAllStations] = useState<Station[]>([]);
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -372,6 +426,8 @@ export default function CreateTickets() {
   const [toStations, setToStations] = useState<Station[]>([]);
   const [matrix, setMatrix] = useState<MatrixData>({});
   const [submitting, setSubmitting] = useState(false);
+  const [loadingEditTicket, setLoadingEditTicket] = useState(false);
+  const [editTicketLoadedRoute, setEditTicketLoadedRoute] = useState("");
   const [autofillRows, setAutofillRows] = useState<Set<string>>(new Set());
   const [modalMode, setModalMode] = useState<ModalMode>(null);
 
@@ -384,6 +440,81 @@ export default function CreateTickets() {
         .catch(console.error);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!isEditMode || !editRouteId || !user?._id) return;
+    if (editTicketLoadedRoute === editRouteId) return;
+
+    setRouteNumber(editRouteId);
+    setLoadingEditTicket(true);
+
+    axios
+      .get<EditableTicket>(`${API_URL}/ticket/edit/${editRouteId}`)
+      .then((response) => {
+        const ticket = response.data;
+        const nextFromStations: Station[] = [];
+        const nextToStations: Station[] = [];
+        const nextMatrix: MatrixData = {};
+        const seenFrom = new Set<string>();
+        const seenTo = new Set<string>();
+
+        ticket.stops.forEach((stop) => {
+          const from = normalizeStation(stop.from, allStations);
+          const to = normalizeStation(stop.to, allStations);
+          const fromId = stationId(from);
+          const toId = stationId(to);
+          if (!from || !to || !fromId || !toId) return;
+
+          if (!seenFrom.has(fromId)) {
+            seenFrom.add(fromId);
+            nextFromStations.push(from);
+          }
+          if (!seenTo.has(toId)) {
+            seenTo.add(toId);
+            nextToStations.push(to);
+          }
+
+          if (!nextMatrix[fromId]) nextMatrix[fromId] = {};
+          nextMatrix[fromId][toId] = {
+            price: String(stop.other_prices?.our_price ?? stop.price ?? ""),
+            our_return_price: String(stop.other_prices?.return_price ?? ""),
+            childrenPrice: String(
+              stop.other_prices?.our_children_price ?? stop.children_price ?? ""
+            ),
+            time: stop.time ?? "",
+            duration: stop.max_buying_time ?? "",
+          };
+        });
+
+        setDepartureTime(ticket.time ?? "09:00");
+        setNumberOfTickets(ticket.number_of_tickets ?? 6);
+        setFromStations(nextFromStations);
+        setToStations(nextToStations);
+        setMatrix(nextMatrix);
+        setSelectedDays([]);
+        setWeeksToGenerate("1");
+        setAutofillRows(new Set());
+        setEditTicketLoadedRoute(editRouteId);
+      })
+      .catch((error) => {
+        console.error(error);
+        toast({
+          variant: "destructive",
+          title: "Nuk u gjetën bileta",
+          description:
+            "Nuk ka bileta të ardhshme për këtë linjë. Krijoni bileta të reja nëse kjo linjë ende nuk ka orare.",
+        });
+        setEditTicketLoadedRoute(editRouteId);
+      })
+      .finally(() => setLoadingEditTicket(false));
+  }, [
+    allStations,
+    editRouteId,
+    editTicketLoadedRoute,
+    isEditMode,
+    toast,
+    user?._id,
+  ]);
 
   const addFrom = (s: Station) => {
     if (fromStations.find((x) => x._id === s._id)) return;
@@ -547,7 +678,7 @@ export default function CreateTickets() {
         description: "Shtoni stacionet e nisjes dhe mbërritjes.",
       });
     }
-    if (!selectedDays.length) {
+    if (!isEditMode && !selectedDays.length) {
       return toast({
         variant: "destructive",
         description: "Zgjidhni të paktën një ditë.",
@@ -572,6 +703,14 @@ export default function CreateTickets() {
       });
     });
 
+    if (!stops.length) {
+      return toast({
+        variant: "destructive",
+        description:
+          "Plotësoni të paktën një kombinim me çmim, çmim fëmijësh, kohë dhe kohëzgjatje.",
+      });
+    }
+
     const payload = {
       route_number: routeNumber,
       destination: {
@@ -587,20 +726,31 @@ export default function CreateTickets() {
       },
       days_of_week: selectedDays.map(Number),
       weeks_to_generate: parseInt(weeksToGenerate),
+      replace_stops: isEditMode,
     };
 
     setSubmitting(true);
     try {
-      await axios.post(`${API_URL}/ticket/create/${user._id}`, payload);
-      toast({
-        title: "Sukses",
-        description: "Biletat u krijuan me sukses!",
-      });
+      if (isEditMode) {
+        await axios.put(`${API_URL}/ticket/route/${routeNumber}`, payload);
+        toast({
+          title: "Sukses",
+          description: "Biletat e ardhshme u përditësuan me sukses!",
+        });
+      } else {
+        await axios.post(`${API_URL}/ticket/create/${user._id}`, payload);
+        toast({
+          title: "Sukses",
+          description: "Biletat u krijuan me sukses!",
+        });
+      }
     } catch {
       toast({
         variant: "destructive",
         title: "Gabim",
-        description: "Ndodhi një gabim gjatë krijimit të biletave.",
+        description: isEditMode
+          ? "Ndodhi një gabim gjatë përditësimit të biletave."
+          : "Ndodhi një gabim gjatë krijimit të biletave.",
       });
     } finally {
       setSubmitting(false);
@@ -632,14 +782,20 @@ export default function CreateTickets() {
           <div className="flex items-center gap-2 mr-3">
             <Bus className="w-4 h-4 text-blue-600" />
             <span className="font-bold text-xs tracking-widest text-gray-900 uppercase">
-              Matrica e Biletave
+              {isEditMode ? "Editimi i Biletave" : "Matrica e Biletave"}
             </span>
+            {isEditMode && (
+              <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700">
+                Biletat e ardhshme
+              </span>
+            )}
           </div>
 
           <select
             value={routeNumber}
             onChange={(e) => setRouteNumber(e.target.value)}
-            className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+            disabled={isEditMode}
+            className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
           >
             <option value="">Zgjidh Linjën…</option>
             {routes.map((r) => (
@@ -665,40 +821,44 @@ export default function CreateTickets() {
             className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-20"
           />
 
-          <select
-            value={weeksToGenerate}
-            onChange={(e) => setWeeksToGenerate(e.target.value)}
-            className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
-          >
-            <option value="1">1 javë</option>
-            <option value="2">2 javë</option>
-            <option value="3">3 javë</option>
-            <option value="4">1 muaj</option>
-            <option value="8">2 muaj</option>
-            <option value="16">4 muaj</option>
-            <option value="24">6 muaj</option>
-            <option value="52">1 vit</option>
-            <option value="104">2 vite</option>
-          </select>
-
-          <div className="flex gap-1">
-            {days.map((day: IDayOfWeek) => (
-              <button
-                key={day.value}
-                onClick={() =>
-                  setSelectedDays((p) =>
-                    p.includes(day.value)
-                      ? p.filter((d) => d !== day.value)
-                      : [...p, day.value]
-                  )
-                }
-                title={day.key}
-                className={`w-7 h-7 rounded text-[10px] font-bold border transition-all ${selectedDays.includes(day.value) ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-gray-300 text-gray-500 hover:border-gray-400"}`}
+          {!isEditMode && (
+            <>
+              <select
+                value={weeksToGenerate}
+                onChange={(e) => setWeeksToGenerate(e.target.value)}
+                className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
               >
-                {day.key.slice(0, 2).toUpperCase()}
-              </button>
-            ))}
-          </div>
+                <option value="1">1 javë</option>
+                <option value="2">2 javë</option>
+                <option value="3">3 javë</option>
+                <option value="4">1 muaj</option>
+                <option value="8">2 muaj</option>
+                <option value="16">4 muaj</option>
+                <option value="24">6 muaj</option>
+                <option value="52">1 vit</option>
+                <option value="104">2 vite</option>
+              </select>
+
+              <div className="flex gap-1">
+                {days.map((day: IDayOfWeek) => (
+                  <button
+                    key={day.value}
+                    onClick={() =>
+                      setSelectedDays((p) =>
+                        p.includes(day.value)
+                          ? p.filter((d) => d !== day.value)
+                          : [...p, day.value]
+                      )
+                    }
+                    title={day.key}
+                    className={`w-7 h-7 rounded text-[10px] font-bold border transition-all ${selectedDays.includes(day.value) ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-gray-300 text-gray-500 hover:border-gray-400"}`}
+                  >
+                    {day.key.slice(0, 2).toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           <div className="h-6 w-px bg-gray-200 mx-1" />
 
@@ -729,11 +889,17 @@ export default function CreateTickets() {
             </span>
             <button
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || loadingEditTicket}
               className="flex items-center gap-2 px-4 py-1.5 bg-gray-900 hover:bg-gray-800 disabled:opacity-40 rounded-lg text-xs font-bold text-white transition-colors"
             >
               <Send className="w-3.5 h-3.5" />
-              {submitting ? "Duke dërguar…" : "Krijo Biletat"}
+              {submitting
+                ? isEditMode
+                  ? "Duke ruajtur…"
+                  : "Duke dërguar…"
+                : isEditMode
+                ? "Ruaj Ndryshimet"
+                : "Krijo Biletat"}
             </button>
           </div>
         </div>
@@ -912,7 +1078,9 @@ export default function CreateTickets() {
           <div className="flex flex-col items-center justify-center h-96 text-gray-400 gap-3 select-none">
             <Bus className="w-14 h-14 opacity-20 text-gray-400" />
             <p className="text-sm font-medium text-gray-500">
-              Filloni duke shtuar stacionet
+              {loadingEditTicket
+                ? "Duke ngarkuar biletat e linjës..."
+                : "Filloni duke shtuar stacionet"}
             </p>
             <div className="flex items-center gap-6 text-xs text-gray-400 mt-2">
               <span className="flex items-center gap-2">

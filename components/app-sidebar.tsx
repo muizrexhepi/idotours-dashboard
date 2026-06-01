@@ -26,6 +26,9 @@ import { useUser } from "@/context/user";
 import { usePathname } from "next/navigation";
 import { Badge } from "./ui/badge";
 
+const SIDEBAR_LOGO_URL =
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVk8AqwTpcrd7cLHUX0sn2IeddYU6J00Iw8w&s";
+
 export function AppSidebar() {
   const { user, logout } = useUser();
   const { state } = useSidebar();
@@ -51,9 +54,11 @@ export function AppSidebar() {
           <Link href="/" className="flex items-center gap-3">
             {state === "expanded" ? (
               <>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground shadow-sm">
-                  ID
-                </div>
+                <div
+                  className="h-10 w-10 shrink-0 rounded-lg bg-[#ffffff] bg-contain bg-center bg-no-repeat shadow-sm"
+                  style={{ backgroundImage: `url(${SIDEBAR_LOGO_URL})` }}
+                  aria-hidden="true"
+                />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-sidebar-foreground">
                     IdoTours
@@ -64,9 +69,11 @@ export function AppSidebar() {
                 </div>
               </>
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
-                ID
-              </div>
+              <div
+                className="h-9 w-9 rounded-lg bg-[#ffffff] bg-contain bg-center bg-no-repeat shadow-sm"
+                style={{ backgroundImage: `url(${SIDEBAR_LOGO_URL})` }}
+                aria-hidden="true"
+              />
             )}
           </Link>
         </div>
@@ -110,7 +117,7 @@ export function AppSidebar() {
                           }
                           className={`w-full transition-colors ${
                             isActive
-                              ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                              ? "bg-[#ffffff] text-black shadow-sm hover:bg-[#ffffff] hover:text-black"
                               : "text-sidebar-foreground/72 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                           }`}
                         >
@@ -120,7 +127,7 @@ export function AppSidebar() {
                           >
                             <item.icon
                               className={`size-4 flex-shrink-0 ${
-                                isActive ? "text-sidebar-primary-foreground" : ""
+                                isActive ? "text-black" : ""
                               }`}
                             />
                             {state === "expanded" && (

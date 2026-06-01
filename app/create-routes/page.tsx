@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import { Station } from "@/models/station";
 import { Route } from "@/models/route";
 import { useUser } from "@/context/user";
@@ -24,7 +25,8 @@ import {
   ChevronUp,
   Phone,
   Mail,
-  Luggage
+  Luggage,
+  Pencil
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -495,6 +497,17 @@ export default function CreateRoutesPage() {
                           </td>
                           <td className="py-4 px-6 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                asChild
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Edito Biletat"
+                              >
+                                <Link href={`/create-tickets?editRoute=${route._id}`}>
+                                  <Pencil size={14} />
+                                </Link>
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
