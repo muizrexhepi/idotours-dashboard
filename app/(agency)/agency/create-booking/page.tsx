@@ -71,6 +71,11 @@ interface ITicketOption {
     code: string;
     destination?: { from: string; to: string };
   };
+  route?: {
+    _id: string;
+    code: string;
+    destination?: { from: string; to: string };
+  };
   destination?: { from: string; to: string };
   // Backend populates stops.from / stops.to
   stops?: {
@@ -91,12 +96,6 @@ interface IStationOption {
 }
 
 type IStopOption = NonNullable<ITicketOption["stops"]>[number];
-
-interface IRouteOption {
-  _id: string;
-  code: string;
-  destination?: { from: string; to: string };
-}
 
 const EMPTY_PASSENGER: IAgencyPassenger = {
   full_name: "",
@@ -153,6 +152,29 @@ const getStationLabel = (station?: IStationOption) =>
 
 const getStationMeta = (station?: IStationOption) =>
   [station?.country, station?.code].filter(Boolean).join(" / ");
+
+const stationMatchesSearch = (station: IStationOption, search: string) => {
+  const query = search.trim().toLowerCase();
+  if (!query) return true;
+
+  return [station.city, station.name, station.country, station.code]
+    .filter(Boolean)
+    .some((value) => value!.toLowerCase().includes(query));
+};
+
+const getTicketRoute = (ticket?: ITicketOption | null) => {
+  const routeNumber =
+    ticket?.route_number && typeof ticket.route_number === "object"
+      ? ticket.route_number
+      : undefined;
+  return ticket?.route ?? routeNumber;
+};
+
+const getTicketRouteCode = (ticket?: ITicketOption | null) =>
+  getTicketRoute(ticket)?.code ?? "";
+
+const getTicketDestination = (ticket?: ITicketOption | null) =>
+  getTicketRoute(ticket)?.destination ?? ticket?.destination;
 
 const getUniqueStations = (stations: (IStationOption | undefined)[]) => {
   const seen = new Set<string>();
@@ -248,7 +270,7 @@ const getPassengerTicketPrice = (
 
 // ─── Step indicator ───────────────────────────────────────────────
 const STEPS = [
-  { id: 1, label: "Zgjidhni Linjën", icon: Bus },
+  { id: 1, label: "Zgjidhni Stacionet", icon: Bus },
   { id: 2, label: "Pasagjerët", icon: Users },
   { id: 3, label: "Konfirmim", icon: CheckCircle2 },
 ];
@@ -262,10 +284,13 @@ export default function AgencyCreateBookingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Step 1 — ticket search
-  const [routeSearch, setRouteSearch] = useState("");
-  const [loadingRoutes, setLoadingRoutes] = useState(false);
-  const [selectedRoute, setSelectedRoute] = useState<IRouteOption | null>(null);
-  const [routeOpen, setRouteOpen] = useState(false);
+  const [departureStationSearch, setDepartureStationSearch] = useState("");
+  const [arrivalStationSearch, setArrivalStationSearch] = useState("");
+  const [loadingStations, setLoadingStations] = useState(false);
+  const [departureStationOpen, setDepartureStationOpen] = useState(false);
+  const [arrivalStationOpen, setArrivalStationOpen] = useState(false);
+  const [searchDepartureStationId, setSearchDepartureStationId] = useState("");
+  const [searchArrivalStationId, setSearchArrivalStationId] = useState("");
 
   const [departureDate, setDepartureDate] = useState<Date | undefined>(
     new Date(),
@@ -288,63 +313,88 @@ export default function AgencyCreateBookingPage() {
   ]);
   const [isPaid, setIsPaid] = useState(true);
 
-  // ─── Load all routes once on mount ────────────────────────────
-  const [allRoutes, setAllRoutes] = useState<IRouteOption[]>([]);
+  // ─── Load all stations once on mount ────────────────────────────
+  const [allStations, setAllStations] = useState<IStationOption[]>([]);
 
   useEffect(() => {
     if (!agency?._id) return;
-    setLoadingRoutes(true);
+    setLoadingStations(true);
     apiClient
-      .get(`/route`)
+      .get("/station")
       .then((res) =>
-        setAllRoutes(
-          (res?.data?.data ?? []).filter((r: IRouteOption) => !!r._id),
+        setAllStations(
+          (res?.data?.data ?? []).filter(
+            (station: IStationOption) => !!station._id,
+          ),
         ),
       )
-      .catch(() => setAllRoutes([]))
-      .finally(() => setLoadingRoutes(false));
+      .catch(() => setAllStations([]))
+      .finally(() => setLoadingStations(false));
   }, [agency?._id]);
 
-  // Filter client-side based on search input
-  const routes =
-    routeSearch.trim().length === 0
-      ? allRoutes
-      : allRoutes.filter((r) => {
-          const q = routeSearch.toLowerCase();
-          return (
-            r.code?.toLowerCase().includes(q) ||
-            r.destination?.from?.toLowerCase().includes(q) ||
-            r.destination?.to?.toLowerCase().includes(q)
-          );
-        });
+  const departureStations = useMemo(
+    () =>
+      allStations.filter((station) =>
+        stationMatchesSearch(station, departureStationSearch),
+      ),
+    [allStations, departureStationSearch],
+  );
 
-  // ─── Fetch tickets for route + date ────────────────────────────
+  const arrivalStationsForSearch = useMemo(
+    () =>
+      allStations.filter(
+        (station) =>
+          station._id !== searchDepartureStationId &&
+          stationMatchesSearch(station, arrivalStationSearch),
+      ),
+    [allStations, arrivalStationSearch, searchDepartureStationId],
+  );
+
+  const searchDepartureStation = useMemo(
+    () =>
+      allStations.find((station) => station._id === searchDepartureStationId),
+    [allStations, searchDepartureStationId],
+  );
+
+  const searchArrivalStation = useMemo(
+    () => allStations.find((station) => station._id === searchArrivalStationId),
+    [allStations, searchArrivalStationId],
+  );
+
+  // ─── Fetch tickets for stations + date ────────────────────────────
   const fetchTickets = useCallback(async () => {
-    if (!selectedRoute?._id || !departureDate) return;
+    if (!searchDepartureStationId || !searchArrivalStationId || !departureDate) {
+      setTickets([]);
+      setSelectedTicket(null);
+      return;
+    }
     setLoadingTickets(true);
     setSelectedTicket(null);
-    setSelectedDepartureStationId("");
-    setSelectedArrivalStationId("");
+    setSelectedDepartureStationId(searchDepartureStationId);
+    setSelectedArrivalStationId(searchArrivalStationId);
     setStopPickerOpen(false);
     setTickets([]);
     try {
-      // Backend expects DD-MM-YYYY and route_number = route _id
+      // Backend expects DD-MM-YYYY and station ids.
       const dateStr = format(departureDate, "dd-MM-yyyy");
-      const res = await apiClient.get(
-        `/ticket/by-route-date/${selectedRoute._id}`,
-        {
-          params: { date: dateStr },
+      const res = await apiClient.get("/ticket/search", {
+        params: {
+          departureStation: searchDepartureStationId,
+          arrivalStation: searchArrivalStationId,
+          departureDate: dateStr,
+          adults: 1,
+          children: 0,
+          page: 1,
         },
-      );
-      // Backend returns a single ticket object, wrap in array for consistent UI
-      const ticket = res?.data?.data;
-      setTickets(ticket ? [ticket] : []);
+      });
+      const data = res?.data?.data;
+      setTickets(Array.isArray(data) ? data : data ? [data] : []);
     } catch {
       setTickets([]);
     } finally {
       setLoadingTickets(false);
     }
-  }, [selectedRoute, departureDate]);
+  }, [departureDate, searchArrivalStationId, searchDepartureStationId]);
 
   useEffect(() => {
     fetchTickets();
@@ -485,16 +535,13 @@ export default function AgencyCreateBookingPage() {
 
     const depStation = selectedStop.from;
     const arrStation = selectedStop.to;
+    const ticketDestination = getTicketDestination(selectedTicket);
     const fromCity =
       depStation?.city ??
-      selectedTicket.route_number?.destination?.from ??
-      selectedTicket.destination?.from ??
+      ticketDestination?.from ??
       "";
     const toCity =
-      arrStation?.city ??
-      selectedTicket.route_number?.destination?.to ??
-      selectedTicket.destination?.to ??
-      "";
+      arrStation?.city ?? ticketDestination?.to ?? "";
 
     try {
       await createAgencyBooking(agency._id, selectedTicket._id, {
@@ -527,16 +574,11 @@ export default function AgencyCreateBookingPage() {
     }
   };
 
+  const selectedTicketDestination = getTicketDestination(selectedTicket);
   const fromCity =
-    selectedDepartureStation?.city ??
-    selectedTicket?.route_number?.destination?.from ??
-    selectedTicket?.destination?.from ??
-    "";
+    selectedDepartureStation?.city ?? selectedTicketDestination?.from ?? "";
   const toCity =
-    selectedArrivalStation?.city ??
-    selectedTicket?.route_number?.destination?.to ??
-    selectedTicket?.destination?.to ??
-    "";
+    selectedArrivalStation?.city ?? selectedTicketDestination?.to ?? "";
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-gray-50/40">
@@ -597,83 +639,162 @@ export default function AgencyCreateBookingPage() {
             <Card className="border-gray-200 shadow-sm bg-white">
               <CardHeader className="pb-4">
                 <CardTitle className="text-base font-semibold text-gray-900">
-                  Zgjidhni Linjën dhe Datën
+                  Zgjidhni Stacionet dhe Datën
                 </CardTitle>
                 <CardDescription>
-                  Kerko linjën dhe zgjidh orarin e nisjes
+                  Zgjidh stacionin e nisjes dhe mberritjes per te gjetur oraret
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-5">
-                {/* Route search */}
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-sm font-medium text-gray-700">
-                    Linja (Route)
-                  </Label>
-                  <Popover open={routeOpen} onOpenChange={setRouteOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="w-full justify-between border-gray-300 text-gray-700 font-normal h-10"
-                      >
-                        {selectedRoute ? (
-                          <span className="flex items-center gap-2">
-                            <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">
-                              {selectedRoute.code}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-sm font-medium text-gray-700">
+                      Stacioni i nisjes
+                    </Label>
+                    <Popover
+                      open={departureStationOpen}
+                      onOpenChange={setDepartureStationOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className="w-full justify-between border-gray-300 text-gray-700 font-normal h-10"
+                        >
+                          {searchDepartureStation ? (
+                            <span className="truncate">
+                              {getStationLabel(searchDepartureStation)}
                             </span>
-                            {selectedRoute.destination?.from} →{" "}
-                            {selectedRoute.destination?.to}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">Kerko linjën...</span>
-                        )}
-                        <Search className="h-4 w-4 text-gray-400 shrink-0" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[420px] p-0" align="start">
-                      <Command>
-                        <CommandInput
-                          placeholder="Kerko sipas kodit ose destinacionit..."
-                          value={routeSearch}
-                          onValueChange={setRouteSearch}
-                        />
-                        <CommandList>
-                          <CommandEmpty>
-                            {loadingRoutes ? (
-                              <div className="flex items-center justify-center py-4 gap-2 text-gray-500">
-                                <Loader2 className="h-4 w-4 animate-spin" />{" "}
-                                Duke kerkuar...
-                              </div>
-                            ) : (
-                              "Nuk u gjet asnje linje."
-                            )}
-                          </CommandEmpty>
-                          <CommandGroup>
-                            {routes.map((route) => (
-                              <CommandItem
-                                key={route._id}
-                                value={route._id}
-                                onSelect={() => {
-                                  setSelectedRoute(route);
-                                  setRouteOpen(false);
-                                  setRouteSearch("");
-                                }}
-                                className="flex items-center gap-3 cursor-pointer"
-                              >
-                                <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
-                                  {route.code}
-                                </span>
-                                <span className="text-sm text-gray-800">
-                                  {route.destination?.from} →{" "}
-                                  {route.destination?.to}
-                                </span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                          ) : (
+                            <span className="text-gray-400">
+                              Kerko nisjen...
+                            </span>
+                          )}
+                          <Search className="h-4 w-4 text-gray-400 shrink-0" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[360px] p-0" align="start">
+                        <Command shouldFilter={false}>
+                          <CommandInput
+                            placeholder="Kerko stacionin e nisjes..."
+                            value={departureStationSearch}
+                            onValueChange={setDepartureStationSearch}
+                          />
+                          <CommandList>
+                            <CommandEmpty>
+                              {loadingStations ? (
+                                <div className="flex items-center justify-center py-4 gap-2 text-gray-500">
+                                  <Loader2 className="h-4 w-4 animate-spin" />{" "}
+                                  Duke kerkuar...
+                                </div>
+                              ) : (
+                                "Nuk u gjet asnje stacion."
+                              )}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {departureStations.map((station) => (
+                                <CommandItem
+                                  key={station._id}
+                                  value={station._id}
+                                  onSelect={() => {
+                                    setSearchDepartureStationId(station._id);
+                                    if (station._id === searchArrivalStationId) {
+                                      setSearchArrivalStationId("");
+                                    }
+                                    setDepartureStationOpen(false);
+                                    setDepartureStationSearch("");
+                                  }}
+                                  className="flex flex-col items-start gap-0.5 cursor-pointer"
+                                >
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {getStationLabel(station)}
+                                  </span>
+                                  {getStationMeta(station) && (
+                                    <span className="text-xs text-gray-500">
+                                      {getStationMeta(station)}
+                                    </span>
+                                  )}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-sm font-medium text-gray-700">
+                      Stacioni i mberritjes
+                    </Label>
+                    <Popover
+                      open={arrivalStationOpen}
+                      onOpenChange={setArrivalStationOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className="w-full justify-between border-gray-300 text-gray-700 font-normal h-10"
+                        >
+                          {searchArrivalStation ? (
+                            <span className="truncate">
+                              {getStationLabel(searchArrivalStation)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">
+                              Kerko mberritjen...
+                            </span>
+                          )}
+                          <Search className="h-4 w-4 text-gray-400 shrink-0" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[360px] p-0" align="start">
+                        <Command shouldFilter={false}>
+                          <CommandInput
+                            placeholder="Kerko stacionin e mberritjes..."
+                            value={arrivalStationSearch}
+                            onValueChange={setArrivalStationSearch}
+                          />
+                          <CommandList>
+                            <CommandEmpty>
+                              {loadingStations ? (
+                                <div className="flex items-center justify-center py-4 gap-2 text-gray-500">
+                                  <Loader2 className="h-4 w-4 animate-spin" />{" "}
+                                  Duke kerkuar...
+                                </div>
+                              ) : (
+                                "Nuk u gjet asnje stacion."
+                              )}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {arrivalStationsForSearch.map((station) => (
+                                <CommandItem
+                                  key={station._id}
+                                  value={station._id}
+                                  onSelect={() => {
+                                    setSearchArrivalStationId(station._id);
+                                    setArrivalStationOpen(false);
+                                    setArrivalStationSearch("");
+                                  }}
+                                  className="flex flex-col items-start gap-0.5 cursor-pointer"
+                                >
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {getStationLabel(station)}
+                                  </span>
+                                  {getStationMeta(station) && (
+                                    <span className="text-xs text-gray-500">
+                                      {getStationMeta(station)}
+                                    </span>
+                                  )}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
 
                 {/* Date picker */}
@@ -720,7 +841,7 @@ export default function AgencyCreateBookingPage() {
             </Card>
 
             {/* Ticket list */}
-            {selectedRoute && departureDate && (
+            {searchDepartureStationId && searchArrivalStationId && departureDate && (
               <div className="flex flex-col gap-3">
                 <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
                   Oraret e disponueshme
@@ -736,7 +857,7 @@ export default function AgencyCreateBookingPage() {
                   <div className="flex flex-col items-center justify-center py-10 gap-2 text-center bg-white rounded-xl border border-gray-200">
                     <AlertCircle className="h-8 w-8 text-gray-300" />
                     <p className="text-sm font-medium text-gray-500">
-                      Nuk ka orare per kete date
+                      Nuk ka orare per keto stacione ne kete date
                     </p>
                     <p className="text-xs text-gray-400">
                       Provo nje date tjeter
@@ -747,12 +868,11 @@ export default function AgencyCreateBookingPage() {
                     const isSelected = selectedTicket?._id === ticket._id;
                     const firstStop = getSelectedStop(ticket);
                     const depStation = firstStop?.from?.name;
+                    const ticketDestination = getTicketDestination(ticket);
                     const from =
-                      ticket.route_number?.destination?.from ??
-                      ticket.destination?.from;
-                    const to =
-                      ticket.route_number?.destination?.to ??
-                      ticket.destination?.to;
+                      firstStop?.from?.city ?? ticketDestination?.from ?? "";
+                    const to = firstStop?.to?.city ?? ticketDestination?.to ?? "";
+                    const routeCode = getTicketRouteCode(ticket);
                     const adultPrice = getTicketAdultPrice(ticket, firstStop);
                     const childPrice = getTicketChildrenPrice(ticket, firstStop);
                     const hasChildrenPrice = firstStop?.children_price != null;
@@ -785,12 +905,14 @@ export default function AgencyCreateBookingPage() {
                                 <span className="font-semibold text-gray-900 text-sm">
                                   {from} → {to}
                                 </span>
-                                <Badge
-                                  variant="outline"
-                                  className="font-mono text-xs border-gray-200 text-gray-600"
-                                >
-                                  {ticket.route_number?.code}
-                                </Badge>
+                                {routeCode && (
+                                  <Badge
+                                    variant="outline"
+                                    className="font-mono text-xs border-gray-200 text-gray-600"
+                                  >
+                                    {routeCode}
+                                  </Badge>
+                                )}
                               </div>
                               <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                                 <span className="flex items-center gap-1">
@@ -1228,9 +1350,11 @@ export default function AgencyCreateBookingPage() {
                       <span className="text-base font-bold text-gray-900">
                         {toCity}
                       </span>
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {selectedTicket?.route_number?.code}
-                      </Badge>
+                      {getTicketRouteCode(selectedTicket) && (
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {getTicketRouteCode(selectedTicket)}
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-3 mt-1.5 text-sm text-gray-500 flex-wrap">
                       <span className="flex items-center gap-1">
