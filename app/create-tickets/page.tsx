@@ -6,7 +6,7 @@ import { Route } from "@/models/route";
 import { API_URL } from "@/environment";
 import { useToast } from "@/components/ui/use-toast";
 import axios, { AxiosResponse } from "axios";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { Suspense, useEffect, useState, useMemo, useRef } from "react";
 import { Plus, X, Search, ChevronDown, Send, Bus, Copy, ArrowLeftRight, Trash2, AlertTriangle } from "lucide-react";
 import { useUser } from "@/context/user";
 import { useSearchParams } from "next/navigation";
@@ -407,7 +407,7 @@ function MatrixCell({
   );
 }
 
-export default function CreateTickets() {
+function CreateTicketsContent() {
   const { toast } = useToast();
   const { user } = useUser();
   const searchParams = useSearchParams();
@@ -1115,5 +1115,13 @@ export default function CreateTickets() {
         </span>
       </div>
     </div>
+  );
+}
+
+export default function CreateTickets() {
+  return (
+    <Suspense fallback={null}>
+      <CreateTicketsContent />
+    </Suspense>
   );
 }
