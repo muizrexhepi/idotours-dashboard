@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import { cookies } from "next/headers";
 import { RootLayoutClient } from "@/context/root-layout-client";
 import { ConvexClientProvider } from "@/providers/convex-provider";
  
@@ -17,14 +16,11 @@ export const metadata: Metadata = {
     "IdoTours, bus booking, transport management, operator dashboard, analytics",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const defaultOpen = cookieStore.get("sidebar:state")?.value !== "false";
-
   return (
     <html lang="en" className="h-full">
       <body className={`${inter.className} h-full bg-background`}>
@@ -32,12 +28,10 @@ export default async function RootLayout({
           RootLayoutClient checks the current path:
           - /agency/* routes → renders children directly (no UserProvider, no DashboardLayout)
           - /login        → renders children directly (no UserProvider guard)
-          - everything else → wraps in UserProvider + SidebarProvider + DashboardLayout
+          - everything else → wraps in UserProvider + DashboardLayout
         */}
         <ConvexClientProvider>
-          <RootLayoutClient defaultSidebarOpen={defaultOpen}>
-            {children}
-          </RootLayoutClient>
+          <RootLayoutClient>{children}</RootLayoutClient>
         </ConvexClientProvider>
         <Toaster />
       </body>

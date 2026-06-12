@@ -2,16 +2,13 @@
 
 import { usePathname } from "next/navigation";
 import { UserProvider } from "@/context/user";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardLayout } from "@/context/dashboard";
-import SupportChat from "@/app/live-chat-support/page";
 
 interface Props {
   children: React.ReactNode;
-  defaultSidebarOpen: boolean;
 }
 
-export function RootLayoutClient({ children, defaultSidebarOpen }: Props) {
+export function RootLayoutClient({ children }: Props) {
   const pathname = usePathname();
 
   // Agency portal and login page bypass the operator auth wrapper entirely
@@ -26,10 +23,7 @@ export function RootLayoutClient({ children, defaultSidebarOpen }: Props) {
   // All other routes go through the operator auth stack
   return (
     <UserProvider>
-      <SidebarProvider defaultOpen={defaultSidebarOpen}>
-        <DashboardLayout>{children}</DashboardLayout>
-        {/* <SupportChat /> */}
-      </SidebarProvider>
+      <DashboardLayout>{children}</DashboardLayout>
     </UserProvider>
   );
 }
