@@ -586,7 +586,7 @@ const BusSchedule = () => {
                             </span>
                           </TableCell>
                           <TableCell className="text-sm font-semibold text-gray-900">
-                            {route.ticket.route_number.code}
+                            {route.ticket.destination.from} → {route.ticket.destination.to}
                           </TableCell>
                           <TableCell className="text-sm text-gray-600">
                             {moment
